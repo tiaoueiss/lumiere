@@ -114,45 +114,45 @@ erDiagram
 
 ```mermaid
 flowchart LR
-  user[User]
-  frontend[React Frontend]
-  api[Express API]
-  auth[Authentication Controller]
-  necklace[Necklace Controller]
-  wishlist[Wishlist Controller]
-  style[Style Analysis Controller]
-  upload[Upload Middleware]
-  db[(MongoDB Database)]
-  files[(Uploads Folder)]
-  ai[Groq AI Service]
-  email[Email Service]
+  user["User"]
+  frontend["React Frontend"]
+  api["Express API"]
+  auth["Authentication Controller"]
+  necklace["Necklace Controller"]
+  wishlist["Wishlist Controller"]
+  styleCtrl["Style Analysis Controller"]
+  upload["Upload Middleware"]
+  db[("MongoDB Database")]
+  files[("Uploads Folder")]
+  ai["Groq AI Service"]
+  email["Email Service"]
 
-  user -->|Signup, login, browse, try-on, style requests| frontend
-  frontend -->|HTTP requests| api
+  user -->|"Signup, login, browse, try-on, style requests"| frontend
+  frontend -->|"HTTP requests"| api
 
   api --> auth
   api --> necklace
   api --> wishlist
-  api --> style
+  api --> styleCtrl
 
-  auth -->|Create pending OTP, create user, read profile| db
-  auth -->|Send verification code| email
-  email -->|OTP email| user
+  auth -->|"Create pending OTP, create user, read profile"| db
+  auth -->|"Send verification code"| email
+  email -->|"OTP email"| user
 
-  necklace -->|Read catalogue and custom necklaces| db
-  necklace -->|Upload custom necklace image| upload
-  upload -->|Store image file| files
-  upload -->|File path / filename| necklace
-  necklace -->|Save uploaded necklace metadata| db
+  necklace -->|"Read catalogue and custom necklaces"| db
+  necklace -->|"Upload custom necklace image"| upload
+  upload -->|"Store image file"| files
+  upload -->|"File path / filename"| necklace
+  necklace -->|"Save uploaded necklace metadata"| db
 
-  wishlist -->|Read / update user wishlist| db
+  wishlist -->|"Read / update user wishlist"| db
 
-  style -->|Preprocessed selfie and prompts| ai
-  ai -->|Observations, classification, personalization| style
-  style -->|Save / read / delete AI analysis| db
+  styleCtrl -->|"Preprocessed selfie and prompts"| ai
+  ai -->|"Observations, classification, personalization"| styleCtrl
+  styleCtrl -->|"Save / read / delete AI analysis"| db
 
-  api -->|JSON responses| frontend
-  frontend -->|Rendered pages and results| user
+  api -->|"JSON responses"| frontend
+  frontend -->|"Rendered pages and results"| user
 ```
 
 ## Database Implementation
