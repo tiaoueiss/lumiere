@@ -1,0 +1,266 @@
+// ===========================================
+// controllers/necklaceController.js — Necklace CRUD + Upload
+// ===========================================
+// Handles all necklace-related operations:
+// - Get all necklaces (with filtering)
+// - Get a single necklace by ID
+// - Create a new catalogue necklace (admin)
+// - Upload a custom necklace (authenticated user)
+// - Update and delete necklaces
+
+const fs = require("fs/promises");
+const path = require("path");
+const { validationResult } = require("express-validator");
+const Necklace = require("../models/Necklace");
+const User = require("../models/User");
+
+const UPLOADS_DIR = path.resolve(__dirname, "..", "uploads");
+
+const deleteUploadFile = async (uploadUrl) => {
+  if (!uploadUrl || !uploadUrl.startsWith("/uploads/")) return;
+
+  const relativePath = uploadUrl.replace(/^\/uploads[\\/]/, "");
+  const absolutePath = path.resolve(UPLOADS_DIR, relativePath);
+
+  if (!absolutePath.startsWith(`${UPLOADS_DIR}${path.sep}`)) return;
+
+  try {
+    await fs.unlink(absolutePath);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.warn(`Could not delete upload file ${uploadUrl}:`, error.message);
+    }
+  }
+};
+
+// ===========================================
+// GET /api/necklaces
+// ===========================================
+// Returns all necklaces with optional filters.
+// Query params: ?category=pendant&style=minimalist&metal=gold&featured=true
+const getAllNecklaces = async (req, res) => {
+  try {
+    // Build a filter object from query parameters
+    const filter = {};
+
+    if (req.query.category) filter.category = String(req.query.category);
+    if (req.query.style) filter.style = String(req.query.style);
+    if (req.query.metal) filter.metal = String(req.query.metal);
+    if (req.query.featured) filter.featured = req.query.featured === "true";
+    if (req.query.inStock) filter.inStock = req.query.inStock === "true";
+
+    // Only show catalogue items — custom uploads are private to their owner
+    // and are fetched via GET /api/necklaces/my-uploads instead.
+    filter.isCustom = false;
+
+    const necklaces = await Necklace.find(filter).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: necklaces.length,
+      data: { necklaces },
+    });
+  } catch (error) {
+    console.error("Get necklaces error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching necklaces",
+    });
+  }
+};
+
+// ===========================================
+// GET /api/necklaces/:id
+// ===========================================
+// Returns a single necklace by its MongoDB ID.
+const getNecklaceById = async (req, res) => {
+  try {
+    const necklace = await Necklace.findById(req.params.id);
+
+    if (!necklace) {
+      return res.status(404).json({
+        success: false,
+        message: "Necklace not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { necklace },
+    });
+  } catch (error) {
+    console.error("Get necklace error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching necklace",
+    });
+  }
+};
+
+// ===========================================
+// POST /api/necklaces
+// ===========================================
+// Creates a new catalogue necklace (for seeding/admin use).
+const createNecklace = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array(),
+      });
+    }
+
+    const necklace = await Necklace.create(req.body);
+
+    res.status(201).json({
+      success: true,
+      message: "Necklace created successfully",
+      data: { necklace },
+    });
+  } catch (error) {
+    console.error("Create necklace error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error creating necklace",
+    });
+  }
+};
+
+// ===========================================
+// POST /api/necklaces/upload
+// ===========================================
+// Uploads a custom necklace image (authenticated users).
+// The file is handled by the Multer middleware before this runs.
+const uploadCustomNecklace = async (req, res) => {
+  try {
+    // Multer attaches the file info to req.file
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload an image file (PNG or WebP)",
+      });
+    }
+
+    const { name, description, category, style, metal } = req.body;
+
+    // Create the necklace with the uploaded file path
+    const necklace = await Necklace.create({
+      name: name || "Custom Necklace",
+      description: description || "My custom necklace",
+      price: 0, // Custom uploads don't have a price
+      category: category || "custom",
+      style: style || "modern",
+      metal: metal || "gold",
+      image: `/uploads/${req.file.filename}`,
+      tryOnImage: `/uploads/${req.file.filename}`, // Same image for try-on
+      tryOnSettings: {
+        scale: parseFloat(req.body.scale) || 1.0,
+        offsetY: parseFloat(req.body.offsetY) || 0,
+      },
+      isCustom: true,
+      uploadedBy: req.user._id,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Custom necklace uploaded successfully",
+      data: { necklace },
+    });
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error uploading necklace",
+    });
+  }
+};
+
+// ===========================================
+// GET /api/necklaces/my-uploads
+// ===========================================
+// Returns all custom necklaces uploaded by the current user.
+const getMyUploads = async (req, res) => {
+  try {
+    const necklaces = await Necklace.find({
+      uploadedBy: req.user._id,
+      isCustom: true,
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: necklaces.length,
+      data: { necklaces },
+    });
+  } catch (error) {
+    console.error("Get uploads error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching your uploads",
+    });
+  }
+};
+
+// ===========================================
+// DELETE /api/necklaces/:id
+// ===========================================
+// Deletes a necklace. Users can only delete their own custom uploads.
+const deleteNecklace = async (req, res) => {
+  try {
+    const necklace = await Necklace.findById(req.params.id);
+
+    if (!necklace) {
+      return res.status(404).json({
+        success: false,
+        message: "Necklace not found",
+      });
+    }
+
+    // Catalogue items should not be removable through this route until
+    // a proper admin role exists.
+    if (!necklace.isCustom) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Catalogue necklaces cannot be deleted from the API yet. Delete them directly from the database or add an admin role first.",
+      });
+    }
+
+    if (!necklace.uploadedBy || necklace.uploadedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own custom necklaces",
+      });
+    }
+
+    await User.updateMany(
+      { wishlist: necklace._id },
+      { $pull: { wishlist: necklace._id } }
+    );
+    await necklace.deleteOne();
+    await Promise.all([
+      deleteUploadFile(necklace.image),
+      deleteUploadFile(necklace.tryOnImage),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Necklace deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error deleting necklace",
+    });
+  }
+};
+
+module.exports = {
+  getAllNecklaces,
+  getNecklaceById,
+  createNecklace,
+  uploadCustomNecklace,
+  getMyUploads,
+  deleteNecklace,
+};
