@@ -142,13 +142,14 @@ flowchart LR
   necklace -->|Read catalogue and custom necklaces| db
   necklace -->|Upload custom necklace image| upload
   upload -->|Store image file| files
+  upload -->|File path / filename| necklace
   necklace -->|Save uploaded necklace metadata| db
 
-  wishlist -->|Read/update User.wishlist| db
+  wishlist -->|Read / update user wishlist| db
 
   style -->|Preprocessed selfie and prompts| ai
   ai -->|Observations, classification, personalization| style
-  style -->|Save/read/delete AI analysis for logged-in user| db
+  style -->|Save / read / delete AI analysis| db
 
   api -->|JSON responses| frontend
   frontend -->|Rendered pages and results| user
