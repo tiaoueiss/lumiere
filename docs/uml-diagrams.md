@@ -383,7 +383,7 @@ flowchart TD
   adjustTryon["Adjust scale and vertical offset"]
   previewTryon["Preview necklace on photo"]
 
-  style["Open Find Your Style"]
+  styleFeature["Open Find Your Style"]
   uploadSelfie["Upload selfie"]
   analyze["Submit photo for AI analysis"]
   qualityCheck{"Image valid and face visible?"}
@@ -402,32 +402,32 @@ flowchart TD
   uploadNecklace["Upload PNG or WebP necklace image"]
   storeCustom["Store custom necklace in MongoDB and uploads folder"]
 
-  end((End))
+  endNode((End))
 
   start --> openApp --> chooseFeature
 
   chooseFeature --> catalogue
   catalogue --> filters --> necklaceDetails --> wishlistDecision
   wishlistDecision -->|Yes| authForWishlist
-  wishlistDecision -->|No| end
+  wishlistDecision -->|No| endNode
   authForWishlist -->|No| authenticateWishlist
   authForWishlist -->|Yes| addWishlist
   authenticateWishlist --> addWishlist --> customUpload
-  customUpload -->|Yes| uploadNecklace --> storeCustom --> end
-  customUpload -->|No| end
+  customUpload -->|Yes| uploadNecklace --> storeCustom --> endNode
+  customUpload -->|No| endNode
 
   chooseFeature --> tryon
-  tryon --> selectNecklace --> uploadPhoto --> adjustTryon --> previewTryon --> end
+  tryon --> selectNecklace --> uploadPhoto --> adjustTryon --> previewTryon --> endNode
 
-  chooseFeature --> style
-  style --> uploadSelfie --> analyze --> qualityCheck
+  chooseFeature --> styleFeature
+  styleFeature --> uploadSelfie --> analyze --> qualityCheck
   qualityCheck -->|No| showFix --> uploadSelfie
   qualityCheck -->|Yes| showResults --> followUp
   followUp -->|Yes| answerFollowUp --> saveChoice
   followUp -->|No| saveChoice
   saveChoice -->|Yes| authForSave
-  saveChoice -->|No| end
+  saveChoice -->|No| endNode
   authForSave -->|No| authenticateSave
   authForSave -->|Yes| saveResult
-  authenticateSave --> saveResult --> end
+  authenticateSave --> saveResult --> endNode
 ```
