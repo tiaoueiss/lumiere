@@ -114,44 +114,45 @@ erDiagram
 
 ```mermaid
 flowchart LR
-  user[User]
-  frontend[React Frontend]
-  api[Express API]
-  auth[Authentication Controller]
-  necklace[Necklace Controller]
-  wishlist[Wishlist Controller]
-  style[Style Analysis Controller]
-  upload[Upload Middleware]
-  db[(MongoDB Database)]
-  files[(Uploads Folder)]
-  ai[Groq AI Service]
-  email[Email Service]
+  user["User"]
+  frontend["React Frontend"]
+  api["Express API"]
+  auth["Authentication Controller"]
+  necklace["Necklace Controller"]
+  wishlist["Wishlist Controller"]
+  styleCtrl["Style Analysis Controller"]
+  upload["Upload Middleware"]
+  db[("MongoDB Database")]
+  files[("Uploads Folder")]
+  ai["Groq AI Service"]
+  email["Email Service"]
 
-  user -->|Signup, login, browse, try-on, style requests| frontend
-  frontend -->|HTTP requests| api
+  user -->|"Signup, login, browse, try-on, style requests"| frontend
+  frontend -->|"HTTP requests"| api
 
   api --> auth
   api --> necklace
   api --> wishlist
-  api --> style
+  api --> styleCtrl
 
-  auth -->|Create pending OTP, create user, read profile| db
-  auth -->|Send verification code| email
-  email -->|OTP email| user
+  auth -->|"Create pending OTP, create user, read profile"| db
+  auth -->|"Send verification code"| email
+  email -->|"OTP email"| user
 
-  necklace -->|Read catalogue and custom necklaces| db
-  necklace -->|Upload custom necklace image| upload
-  upload -->|Store image file| files
-  necklace -->|Save uploaded necklace metadata| db
+  necklace -->|"Read catalogue and custom necklaces"| db
+  necklace -->|"Upload custom necklace image"| upload
+  upload -->|"Store image file"| files
+  upload -->|"File path / filename"| necklace
+  necklace -->|"Save uploaded necklace metadata"| db
 
-  wishlist -->|Read/update User.wishlist| db
+  wishlist -->|"Read / update user wishlist"| db
 
-  style -->|Preprocessed selfie and prompts| ai
-  ai -->|Observations, classification, personalization| style
-  style -->|Save/read/delete AI analysis for logged-in user| db
+  styleCtrl -->|"Preprocessed selfie and prompts"| ai
+  ai -->|"Observations, classification, personalization"| styleCtrl
+  styleCtrl -->|"Save / read / delete AI analysis"| db
 
-  api -->|JSON responses| frontend
-  frontend -->|Rendered pages and results| user
+  api -->|"JSON responses"| frontend
+  frontend -->|"Rendered pages and results"| user
 ```
 
 ## Database Implementation
@@ -382,7 +383,7 @@ flowchart TD
   adjustTryon["Adjust scale and vertical offset"]
   previewTryon["Preview necklace on photo"]
 
-  style["Open Find Your Style"]
+  styleFeature["Open Find Your Style"]
   uploadSelfie["Upload selfie"]
   analyze["Submit photo for AI analysis"]
   qualityCheck{"Image valid and face visible?"}
@@ -401,32 +402,32 @@ flowchart TD
   uploadNecklace["Upload PNG or WebP necklace image"]
   storeCustom["Store custom necklace in MongoDB and uploads folder"]
 
-  end((End))
+  endNode((End))
 
   start --> openApp --> chooseFeature
 
   chooseFeature --> catalogue
   catalogue --> filters --> necklaceDetails --> wishlistDecision
   wishlistDecision -->|Yes| authForWishlist
-  wishlistDecision -->|No| end
+  wishlistDecision -->|No| endNode
   authForWishlist -->|No| authenticateWishlist
   authForWishlist -->|Yes| addWishlist
   authenticateWishlist --> addWishlist --> customUpload
-  customUpload -->|Yes| uploadNecklace --> storeCustom --> end
-  customUpload -->|No| end
+  customUpload -->|Yes| uploadNecklace --> storeCustom --> endNode
+  customUpload -->|No| endNode
 
   chooseFeature --> tryon
-  tryon --> selectNecklace --> uploadPhoto --> adjustTryon --> previewTryon --> end
+  tryon --> selectNecklace --> uploadPhoto --> adjustTryon --> previewTryon --> endNode
 
-  chooseFeature --> style
-  style --> uploadSelfie --> analyze --> qualityCheck
+  chooseFeature --> styleFeature
+  styleFeature --> uploadSelfie --> analyze --> qualityCheck
   qualityCheck -->|No| showFix --> uploadSelfie
   qualityCheck -->|Yes| showResults --> followUp
   followUp -->|Yes| answerFollowUp --> saveChoice
   followUp -->|No| saveChoice
   saveChoice -->|Yes| authForSave
-  saveChoice -->|No| end
+  saveChoice -->|No| endNode
   authForSave -->|No| authenticateSave
   authForSave -->|Yes| saveResult
-  authenticateSave --> saveResult --> end
+  authenticateSave --> saveResult --> endNode
 ```
