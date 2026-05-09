@@ -201,13 +201,44 @@ export default function Navbar() {
             </Link>
           ))}
           {user ? (
-            <button
-              onClick={() => { logout(); setOpen(false) }}
-              className="font-body text-xs tracking-[0.18em] uppercase border border-gold/40
-                text-gold-dark text-center px-5 py-2.5 rounded-sm mt-1 cursor-pointer"
-            >
-              Sign Out ({user.name})
-            </button>
+            <>
+              <div className="border-t border-gold/10 pt-3 mt-1 flex flex-col gap-3">
+                <Link
+                  to="/my-style"
+                  onClick={() => setOpen(false)}
+                  className="font-body text-xs tracking-[0.2em] uppercase text-ink-3 flex items-center gap-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
+                  </svg>
+                  My Style
+                  <span className="text-muted font-light normal-case tracking-normal">({user.name})</span>
+                </Link>
+                <Link
+                  to="/wishlist"
+                  onClick={() => setOpen(false)}
+                  className="font-body text-xs tracking-[0.2em] uppercase text-ink-3 flex items-center gap-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  Wishlist
+                  {wishlistCount > 0 && (
+                    <span className="ml-1 w-4 h-4 rounded-full bg-gold text-white text-[0.55rem] font-ui flex items-center justify-center leading-none">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </Link>
+                <button
+                  onClick={() => { logout(); setOpen(false) }}
+                  className="font-body text-xs tracking-[0.18em] uppercase border border-gold/40
+                    text-gold-dark text-center px-5 py-2.5 rounded-sm cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </>
           ) : (
             <button
               onClick={() => { setShowAuth(true); setOpen(false) }}

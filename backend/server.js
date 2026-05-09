@@ -72,7 +72,7 @@ const analysisRateLimit = rateLimit({
   message: { error: "Too many analysis requests — please wait 15 minutes and try again." },
 });
 app.post("/api/style-analysis", analysisRateLimit, optionalProtect, styleAnalysisHandler);
-app.post("/api/style-analysis/follow-up", styleFollowUpHandler);
+app.post("/api/style-analysis/follow-up", analysisRateLimit, styleFollowUpHandler);
 
 // Save the AI analysis result to the logged-in user's MongoDB document.
 app.post("/api/style-analysis/save", protect, async (req, res) => {

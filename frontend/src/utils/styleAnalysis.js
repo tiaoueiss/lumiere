@@ -71,5 +71,9 @@ export async function askStyleFollowUp({ analysis, question, history = [] }) {
     )
   }
 
-  return data.data.answer
+  const answer = data?.data?.answer
+  if (!answer) {
+    throw new Error('Unexpected response from server. Please try again.')
+  }
+  return answer
 }

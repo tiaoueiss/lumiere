@@ -93,11 +93,13 @@ export default function Wishlist() {
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
+    let cancelled = false
     setLoading(true)
     getWishlist()
-      .then(data => setItems(data.data.wishlist))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false))
+      .then(data => { if (!cancelled) setItems(data.data.wishlist) })
+      .catch(() => { if (!cancelled) setItems([]) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [user])
 
   async function remove(id) {

@@ -8,10 +8,11 @@ const {
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Scout: fast, used for observations and personalization (no need for heavy reasoning).
-// Maverick: more capable MoE model, used for classification where accuracy matters.
-const MODEL_FAST = 'meta-llama/llama-4-scout-17b-16e-instruct';
-const MODEL_ACCURATE = 'meta-llama/llama-4-maverick-17b-16e-instruct';
+// Scout: fast model for observations and personalization.
+// Maverick: stronger model attempted first for classification (requires paid Groq plan).
+// If Maverick returns a 404, each failed pass automatically retries with Scout.
+const MODEL_FAST     = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const MODEL_ACCURATE = 'meta-llama/llama-4-maverick-17b-128e-instruct';
 
 function safeParseJson(text = '') {
   const clean = String(text).replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -58,6 +59,9 @@ async function getClassification(base64, mediaType, observations) {
     callModel(MODEL_ACCURATE, base64, mediaType, FACE_GEOMETRY_PROMPT(observations), 900, 0.15),
     callModel(MODEL_ACCURATE, base64, mediaType, COLOR_ANALYSIS_PROMPT(observations), 900, 0.15),
   ]);
+
+  if (faceResult.status === 'rejected') console.warn('[groq] face pass error:', faceResult.reason?.message || faceResult.reason);
+  if (colorResult.status === 'rejected') console.warn('[groq] color pass error:', colorResult.reason?.message || colorResult.reason);
 
   const faceJson = faceResult.status === 'fulfilled' ? safeParseJson(faceResult.value) : null;
   const colorJson = colorResult.status === 'fulfilled' ? safeParseJson(colorResult.value) : null;

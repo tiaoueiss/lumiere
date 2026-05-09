@@ -4,6 +4,7 @@
 // Lets authenticated users save and remove necklaces
 // from their personal wishlist.
 
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const Necklace = require("../models/Necklace");
 
@@ -40,6 +41,10 @@ const getWishlist = async (req, res) => {
 const addToWishlist = async (req, res) => {
   try {
     const { necklaceId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(necklaceId)) {
+      return res.status(400).json({ success: false, message: "Invalid necklace ID" });
+    }
 
     // Make sure the necklace actually exists
     const necklace = await Necklace.findById(necklaceId);
@@ -85,6 +90,11 @@ const addToWishlist = async (req, res) => {
 const removeFromWishlist = async (req, res) => {
   try {
     const { necklaceId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(necklaceId)) {
+      return res.status(400).json({ success: false, message: "Invalid necklace ID" });
+    }
+
     const user = await User.findById(req.user._id);
 
     // Check if it's actually in the wishlist

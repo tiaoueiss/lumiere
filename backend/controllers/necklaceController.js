@@ -11,6 +11,7 @@
 const fs = require("fs/promises");
 const path = require("path");
 const { validationResult } = require("express-validator");
+const mongoose = require("mongoose");
 const Necklace = require("../models/Necklace");
 const User = require("../models/User");
 
@@ -75,6 +76,9 @@ const getAllNecklaces = async (req, res) => {
 // Returns a single necklace by its MongoDB ID.
 const getNecklaceById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid necklace ID" });
+    }
     const necklace = await Necklace.findById(req.params.id);
 
     if (!necklace) {
@@ -143,24 +147,30 @@ const uploadCustomNecklace = async (req, res) => {
     }
 
     const { name, description, category, style, metal } = req.body;
+    const uploadPath = `/uploads/${req.file.filename}`;
 
-    // Create the necklace with the uploaded file path
-    const necklace = await Necklace.create({
-      name: name || "Custom Necklace",
-      description: description || "My custom necklace",
-      price: 0, // Custom uploads don't have a price
-      category: category || "custom",
-      style: style || "modern",
-      metal: metal || "gold",
-      image: `/uploads/${req.file.filename}`,
-      tryOnImage: `/uploads/${req.file.filename}`, // Same image for try-on
-      tryOnSettings: {
-        scale: parseFloat(req.body.scale) || 1.0,
-        offsetY: parseFloat(req.body.offsetY) || 0,
-      },
-      isCustom: true,
-      uploadedBy: req.user._id,
-    });
+    let necklace;
+    try {
+      necklace = await Necklace.create({
+        name: name || "Custom Necklace",
+        description: description || "My custom necklace",
+        price: 0,
+        category: category || "custom",
+        style: style || "modern",
+        metal: metal || "gold",
+        image: uploadPath,
+        tryOnImage: uploadPath,
+        tryOnSettings: {
+          scale: parseFloat(req.body.scale) || 1.0,
+          offsetY: parseFloat(req.body.offsetY) || 0,
+        },
+        isCustom: true,
+        uploadedBy: req.user._id,
+      });
+    } catch (dbError) {
+      await deleteUploadFile(uploadPath);
+      throw dbError;
+    }
 
     res.status(201).json({
       success: true,
@@ -207,6 +217,9 @@ const getMyUploads = async (req, res) => {
 // Deletes a necklace. Users can only delete their own custom uploads.
 const deleteNecklace = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid necklace ID" });
+    }
     const necklace = await Necklace.findById(req.params.id);
 
     if (!necklace) {

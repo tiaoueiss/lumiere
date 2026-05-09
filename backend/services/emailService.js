@@ -42,8 +42,7 @@ const sendSignupOtpEmail = async ({ to, name, otp }) => {
   const from =
     process.env.SMTP_FROM ||
     process.env.EMAIL_FROM ||
-    process.env.SMTP_USER ||
-    "Lumiere <oueisstiamaria@gmail.com>";
+    process.env.SMTP_USER;
 
   const transporter = getTransporter();
   const safeName = escapeHtml(name);
