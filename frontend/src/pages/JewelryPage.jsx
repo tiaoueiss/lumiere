@@ -7,13 +7,11 @@ import AuthModal from '../components/auth/AuthModal'
 import { fetchNecklaces, getWishlist, addToWishlist, removeFromWishlist } from '../api'
 
 const FILTERS = [
-  { label: 'All',       value: null },
-  { label: 'Choker',    value: 'choker' },
-  { label: 'Pendant',   value: 'pendant' },
-  { label: 'Layered',   value: 'layered' },
-  { label: 'Chain',     value: 'chain' },
-  { label: 'Statement', value: 'statement' },
-  { label: 'Pearl',     value: 'pearl' },
+  { label: 'All',     value: null },
+  { label: 'Choker',  value: 'choker' },
+  { label: 'Pendant', value: 'pendant' },
+  { label: 'Layered', value: 'layered' },
+  { label: 'Chain',   value: 'chain' },
 ]
 
 function getSlug(imagePath) {

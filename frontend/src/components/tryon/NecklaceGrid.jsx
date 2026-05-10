@@ -29,7 +29,7 @@ export default function NecklaceGrid({ catalogue, activeId, setActiveId, onDelet
               <button
                 onClick={e => { e.stopPropagation(); onDelete(necklace.id) }}
                 title="Delete necklace"
-                className="absolute top-1.5 left-1.5 z-10 w-5 h-5 rounded-full
+                className="absolute top-1.5 left-1.5 z-20 w-5 h-5 rounded-full
                   flex items-center justify-center
                   bg-white/90 border border-red-200 text-red-400
                   opacity-0 group-hover:opacity-100 transition-opacity
