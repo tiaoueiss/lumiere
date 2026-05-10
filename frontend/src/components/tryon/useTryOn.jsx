@@ -31,11 +31,6 @@ export function useTryOn(catalogue) {
   const [status,    setStatus]         = useState('')
   const [cameraOn,  setCameraOn]       = useState(false)
 
-  // Keep catalogue ref in sync when the prop changes
-  useEffect(() => { catalogueRef.current = catalogue }, [catalogue])
-
-
-
   const smooth = useCallback((prevRef, current, alpha = 0.6) => {
     if (!prevRef.current) {
       prevRef.current = { x: current.x, y: current.y }
@@ -267,7 +262,14 @@ export function useTryOn(catalogue) {
     return Promise.all(promises)
   }, 
   // buildPlaceholderDataURL is a dependency because it's used to generate fallback images for necklaces without valid src. If buildPlaceholderDataURL changes, we want to regenerate the placeholder images, so we include it in the dependency array to ensure the effect runs again when it changes.
-  [buildPlaceholderDataURL]) 
+  [buildPlaceholderDataURL])
+
+  // Keep catalogue ref in sync when the prop changes.
+  // If the camera is already running, also preload images for any newly added necklaces.
+  useEffect(() => {
+    catalogueRef.current = catalogue
+    if (cameraOn) preloadAllImages()
+  }, [catalogue, cameraOn, preloadAllImages])
 
 
   const renderFrame = useCallback((results) => {
@@ -447,7 +449,9 @@ export function useTryOn(catalogue) {
 
 
 // custom necklace upload
-  const addCustomNecklace = useCallback((file) => {
+  // opts.src and opts.id let the caller supply a persisted backend URL/id
+  // instead of a temporary blob URL, so uploads survive page refresh.
+  const addCustomNecklace = useCallback((file, opts = {}) => {
   return new Promise((resolve, reject) => {
     const allowed = ['image/png', 'image/webp']
     if (!allowed.includes(file.type)) {
@@ -455,12 +459,11 @@ export function useTryOn(catalogue) {
       return
     }
 
-    // generate a temporary URL for the uploaded file to create an Image object and load it
-    const url  = URL.createObjectURL(file)
+    const url  = opts.src || URL.createObjectURL(file)
     const name = file.name
       .replace(/\.[^.]+$/, '')
       .replace(/[-_]/g, ' ')
-    const id = 'custom_' + Date.now()
+    const id = opts.id || 'custom_' + Date.now()
 
     const entry = {
       id,
@@ -480,10 +483,15 @@ export function useTryOn(catalogue) {
     img.crossOrigin = 'anonymous'
     img.onload  = () => { imgCache.current[id] = img; setActiveId(id); resolve(entry) }
     // If the image fails to load (e.g., due to a corrupted file), we still want to add the necklace entry with a placeholder image so the user can see it in the catalogue and select it. We log a warning but resolve the promise anyway.
-    img.onerror = () => { imgCache.current[id] = img; setActiveId(id); resolve(entry) }
+    img.onerror = () => {
+      // Load a placeholder so renderFrame never sees naturalWidth=0 (which produces NaN dimensions)
+      const ph = new Image()
+      ph.src = buildPlaceholderDataURL(entry)
+      ph.onload = () => { imgCache.current[id] = ph; setActiveId(id); resolve(entry) }
+    }
     img.src = url
   })
-}, [setActiveId])
+}, [setActiveId, buildPlaceholderDataURL])
 
 // what is returned here becomes available to any component that calls useTryOn(catalogue)
   return {

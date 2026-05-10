@@ -17,7 +17,7 @@ const getWishlist = async (req, res) => {
     // populate() replaces the ObjectId references with actual necklace data
     const user = await User.findById(req.user._id).populate(
       "wishlist",
-      "name image description price category style metal inStock"
+      "name image tryOnImage description price category style metal inStock isCustom uploadedBy tryOnSettings"
     );
 
     res.status(200).json({
@@ -55,10 +55,20 @@ const addToWishlist = async (req, res) => {
       });
     }
 
+    if (
+      necklace.isCustom &&
+      necklace.uploadedBy?.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only wishlist your own custom uploads",
+      });
+    }
+
     const user = await User.findById(req.user._id);
 
     // Check if already in wishlist (avoid duplicates)
-    if (user.wishlist.includes(necklaceId)) {
+    if (user.wishlist.some((id) => id.toString() === necklaceId)) {
       return res.status(400).json({
         success: false,
         message: "This necklace is already in your wishlist",
@@ -98,7 +108,7 @@ const removeFromWishlist = async (req, res) => {
     const user = await User.findById(req.user._id);
 
     // Check if it's actually in the wishlist
-    if (!user.wishlist.includes(necklaceId)) {
+    if (!user.wishlist.some((id) => id.toString() === necklaceId)) {
       return res.status(400).json({
         success: false,
         message: "This necklace is not in your wishlist",

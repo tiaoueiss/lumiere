@@ -12,7 +12,7 @@ const {
   getMyUploads,
   deleteNecklace,
 } = require("../controllers/necklaceController");
-const { protect, adminOnly } = require("../middleware/auth");
+const { protect, optionalProtect, adminOnly } = require("../middleware/auth");
 const upload = require("../middleware/upload");
 
 const router = express.Router();
@@ -49,7 +49,7 @@ router.post("/upload", protect, upload.single("image"), uploadCustomNecklace);
 router.get("/my-uploads", protect, getMyUploads);
 
 // GET /api/necklaces/:id — Get a single necklace (must come AFTER specific paths)
-router.get("/:id", getNecklaceById);
+router.get("/:id", optionalProtect, getNecklaceById);
 
 // DELETE /api/necklaces/:id — Delete a necklace
 router.delete("/:id", protect, deleteNecklace);

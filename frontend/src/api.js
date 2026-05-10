@@ -85,6 +85,11 @@ export const getSavedAiAnalysis = () =>
 export const deleteSavedAiAnalysis = () =>
   request('/style-analysis/saved', { method: 'DELETE' })
 
+export const getMyUploads = () => request('/necklaces/my-uploads')
+
+export const deleteCustomNecklace = (id) =>
+  request(`/necklaces/${id}`, { method: 'DELETE' })
+
 // ── Custom upload (multipart) ───────────────
 export async function uploadCustomNecklace(formData) {
   const token = localStorage.getItem('token')

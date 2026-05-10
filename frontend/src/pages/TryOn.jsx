@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { useTryOn } from '../components/tryon/useTryOn'
@@ -7,6 +7,8 @@ import NecklaceGrid from '../components/tryon/NecklaceGrid'
 import ControlSliders from '../components/tryon/ControlSliders'
 import UploadSection from '../components/tryon/UploadSection'
 import { NECKLACE_CATALOGUE } from '../data/necklaces'
+import { useAuth } from '../context/AuthContext'
+import { uploadCustomNecklace, getMyUploads, deleteCustomNecklace } from '../api'
 
 export default function TryOn() {
   const [catalogue, setCatalogue] = useState(NECKLACE_CATALOGUE)
@@ -16,7 +18,7 @@ export default function TryOn() {
   const tryon = useTryOn(catalogue)
 
   // pre-select necklace when arriving from the Collection page (?id=choker etc.)
-  const { setActiveId } = tryon
+  const { activeId, setActiveId, addCustomNecklace } = tryon
   useEffect(() => {
     const id = searchParams.get('id')
     if (id && catalogue.some(n => n.id === id)) {
@@ -35,19 +37,19 @@ export default function TryOn() {
       const ids = catalogue.map(n => n.id)
 
       // get index of currently active necklace
-      const idx = ids.indexOf(tryon.activeId)
+      const idx = ids.indexOf(activeId)
 
-      
+
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         // to prevent scrolling
         e.preventDefault()
 
-        tryon.setActiveId(ids[(idx + 1) % ids.length])
+        setActiveId(ids[(idx + 1) % ids.length])
 
-      
+
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault()
-        tryon.setActiveId(ids[(idx - 1 + ids.length) % ids.length])
+        setActiveId(ids[(idx - 1 + ids.length) % ids.length])
       }
     }
 
@@ -56,7 +58,7 @@ export default function TryOn() {
     // clean up
     return () => window.removeEventListener('keydown', handler)
 
-  }, [catalogue, tryon.activeId, tryon.setActiveId])
+  }, [catalogue, activeId, setActiveId])
   
 
   // add new necklace entry to catalogue state after successful upload, which will trigger a re-render and display the new piece in the sidebar grid.
@@ -64,6 +66,73 @@ export default function TryOn() {
     setCatalogue(prev => [...prev, entry])
   }
 
+  const { user } = useAuth()
+  const [prevUser, setPrevUser] = useState(user)
+  if (prevUser !== user) {
+    setPrevUser(user)
+    if (!user) setCatalogue(NECKLACE_CATALOGUE)
+  }
+
+  // On mount, load any custom necklaces the user previously uploaded so they survive refresh.
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    getMyUploads()
+      .then(res => {
+        const entries = res.data.necklaces.map(n => ({
+          id:          n._id,
+          name:        n.name,
+          type:        'Custom upload',
+          price:       '—',
+          yOffset:     n.tryOnSettings?.offsetY ?? 0.04,
+          widthRatio:  1.0,
+          scale:       n.tryOnSettings?.scale ?? 1.0,
+          src:         n.tryOnImage || n.image,
+          isCustom:    true,
+          description: n.description || 'Your custom uploaded necklace.',
+        }))
+        if (!cancelled && entries.length > 0) {
+          setCatalogue(prev => {
+            const base = prev.filter(item => !item.isCustom)
+            const existingIds = new Set(base.map(item => item.id))
+            const uniqueEntries = entries.filter(item => !existingIds.has(item.id))
+            return [...base, ...uniqueEntries]
+          })
+        }
+      })
+      .catch(() => {}) // silently ignore — standard catalogue still works
+    return () => { cancelled = true }
+  }, [user])
+
+  // Try to persist the upload to the backend so it survives page refresh.
+  // Falls back to a local blob URL silently if the user is not logged in or the request fails.
+  const handleCustomUpload = useCallback(async (file) => {
+    let opts = {}
+    if (user) {
+      try {
+        const formData = new FormData()
+        formData.append('image', file)
+        const result = await uploadCustomNecklace(formData)
+        opts = { src: result.data.necklace.image, id: result.data.necklace._id }
+      } catch {
+        // not logged in or network error — blob URL fallback below
+      }
+    }
+    return addCustomNecklace(file, opts)
+  }, [user, addCustomNecklace])
+
+  const handleDelete = useCallback((id) => {
+    setCatalogue(prev => {
+      const next = prev.filter(n => n.id !== id)
+      // If we deleted the active necklace, fall back to the first remaining one
+      if (activeId === id && next.length > 0) setActiveId(next[0].id)
+      return next
+    })
+    // Only call the backend for persisted necklaces (blob-only uploads have 'custom_...' ids)
+    if (!id.startsWith('custom_')) {
+      deleteCustomNecklace(id).catch(() => {})
+    }
+  }, [activeId, setActiveId])
 
 
   return (
@@ -123,15 +192,16 @@ export default function TryOn() {
             </div>
 
             <NecklaceGrid
-              catalogue={catalogue}          // list of necklaces to display
-              activeId={tryon.activeId}      // currently selected necklace
+              catalogue={catalogue}           // list of necklaces to display
+              activeId={tryon.activeId}       // currently selected necklace
               setActiveId={tryon.setActiveId} // function to change necklace
+              onDelete={handleDelete}         // removes custom uploads
             />
 
 
             <UploadSection
-              addCustomNecklace={tryon.addCustomNecklace} // adds necklace to AR system
-              onAdded={handleAdded}                       // updates catalogue UI
+              addCustomNecklace={handleCustomUpload} // persists to backend then adds to AR system
+              onAdded={handleAdded}                  // updates catalogue UI
             />
 
 

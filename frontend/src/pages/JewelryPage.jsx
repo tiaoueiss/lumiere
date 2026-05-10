@@ -17,7 +17,11 @@ const FILTERS = [
 ]
 
 function getSlug(imagePath) {
-  return imagePath?.split('/').pop()?.replace('.png', '') ?? ''
+  return imagePath?.split('/').pop()?.replace(/\.[^.]+$/, '') ?? ''
+}
+
+function getTryOnId(necklace) {
+  return necklace.isCustom ? necklace._id : getSlug(necklace.tryOnImage || necklace.image)
 }
 
 function formatPrice(price) {
@@ -97,7 +101,7 @@ function ProductCard({ necklace, index, isWishlisted, onToggleWishlist }) {
         </p>
         <div className="flex gap-2 pt-1">
           <button
-            onClick={() => navigate(`/tryon?id=${getSlug(necklace.image)}`)}
+            onClick={() => navigate(`/tryon?id=${getTryOnId(necklace)}`)}
             className="flex-1 font-ui text-[0.65rem] tracking-[0.15em] uppercase py-2 rounded-full
               bg-gradient-to-br from-gold to-gold-dark text-white cursor-pointer
               hover:opacity-90 transition-opacity"

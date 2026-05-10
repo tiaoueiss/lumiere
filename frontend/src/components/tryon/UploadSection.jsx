@@ -10,10 +10,14 @@ export default function UploadSection({ addCustomNecklace, onAdded }) {
     // only allow one file
     const file = e.target.files[0]
     if (!file) return
-    setWarned(true)
-    // addCustomNecklace returns the new necklace entry after processing and uploading the image, which is then added to the sidebar catalogue through the onAdded callback.
-    const entry = await addCustomNecklace(file)
-    onAdded?.(entry)
+    try {
+      setWarned(true)
+      // addCustomNecklace returns the new necklace entry after processing and uploading the image, which is then added to the sidebar catalogue through the onAdded callback.
+      const entry = await addCustomNecklace(file)
+      onAdded?.(entry)
+    } catch (err) {
+      console.error('Necklace upload failed:', err)
+    }
     // reset input so the same file can be uploaded again if desired
     e.target.value = ''
   }

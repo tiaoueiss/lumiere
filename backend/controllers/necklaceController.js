@@ -88,6 +88,16 @@ const getNecklaceById = async (req, res) => {
       });
     }
 
+    if (
+      necklace.isCustom &&
+      (!req.user || necklace.uploadedBy?.toString() !== req.user._id.toString())
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only view your own custom uploads",
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: { necklace },

@@ -13,7 +13,7 @@ const connectDB = require("./config/db");
 const Necklace = require("./models/Necklace");
 
 // --- Resolve paths ---
-const ASSETS_DIR = path.join(__dirname, "../sillhouette/src/assets/necklaces");
+const ASSETS_DIR = path.join(__dirname, "../frontend/src/assets/necklaces");
 const UPLOADS_DIR = path.join(__dirname, "uploads/necklaces");
 
 // --- Catalogue data (mirrors sillhouette/src/data/necklaces.js) ---

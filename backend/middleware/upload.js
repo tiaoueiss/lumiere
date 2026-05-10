@@ -8,14 +8,18 @@
 // which is what browsers send when you upload files via a form.
 
 const multer = require("multer");
+const fs = require("fs");
 const path = require("path");
+
+const UPLOADS_DIR = path.resolve(__dirname, "..", "uploads");
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // --- Storage Configuration ---
 // Tells Multer WHERE to save files and WHAT to name them
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // Save uploads to the /uploads folder
-    cb(null, "uploads/");
+    // Save uploads to backend/uploads regardless of where the server was launched.
+    cb(null, UPLOADS_DIR);
   },
   filename: function (req, file, cb) {
     // Create a unique filename: userId-timestamp-originalname

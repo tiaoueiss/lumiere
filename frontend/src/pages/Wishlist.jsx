@@ -7,7 +7,11 @@ import AuthModal from '../components/auth/AuthModal'
 import { getWishlist, removeFromWishlist } from '../api'
 
 function getSlug(imagePath) {
-  return imagePath?.split('/').pop()?.replace('.png', '') ?? ''
+  return imagePath?.split('/').pop()?.replace(/\.[^.]+$/, '') ?? ''
+}
+
+function getTryOnId(necklace) {
+  return necklace.isCustom ? necklace._id : getSlug(necklace.tryOnImage || necklace.image)
 }
 
 function formatPrice(price) {
@@ -88,13 +92,20 @@ export default function Wishlist() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!!user)
   const [showAuth, setShowAuth] = useState(false)
+  // Track previous user to reset loading/items during render when user changes
+  // (React-recommended pattern to avoid calling setState inside an effect)
+  const [prevUser, setPrevUser] = useState(user)
+  if (prevUser !== user) {
+    setPrevUser(user)
+    setLoading(!!user)
+    if (!user) setItems([])
+  }
 
   useEffect(() => {
-    if (!user) { setLoading(false); return }
+    if (!user) return
     let cancelled = false
-    setLoading(true)
     getWishlist()
       .then(data => { if (!cancelled) setItems(data.data.wishlist) })
       .catch(() => { if (!cancelled) setItems([]) })
@@ -167,7 +178,7 @@ export default function Wishlist() {
                 key={necklace._id}
                 necklace={necklace}
                 onRemove={() => remove(necklace._id)}
-                onTryOn={() => navigate(`/tryon?id=${getSlug(necklace.image)}`)}
+                onTryOn={() => navigate(`/tryon?id=${getTryOnId(necklace)}`)}
               />
             ))}
           </div>
