@@ -134,6 +134,18 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-2">
+              {user.role === 'admin' && (
+                <Link
+                  to="/admin"
+                  title="Admin panel"
+                  className="w-8 h-8 rounded-full border border-gold/40 flex items-center justify-center
+                    text-gold-dark hover:bg-gold hover:text-white hover:border-gold transition-colors"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                </Link>
+              )}
               <Link
                 to="/my-style"
                 title={`Signed in as ${user.name}`}
@@ -203,7 +215,19 @@ export default function Navbar() {
           {user ? (
             <>
               <div className="border-t border-gold/10 pt-3 mt-1 flex flex-col gap-3">
-                <Link
+                {user.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setOpen(false)}
+                    className="font-body text-xs tracking-[0.2em] uppercase text-ink-3 flex items-center gap-2"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                    Admin
+                  </Link>
+                )}
+              <Link
                   to="/my-style"
                   onClick={() => setOpen(false)}
                   className="font-body text-xs tracking-[0.2em] uppercase text-ink-3 flex items-center gap-2"

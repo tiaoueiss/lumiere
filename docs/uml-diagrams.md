@@ -42,6 +42,9 @@ flowchart LR
   followup --> ai
 
   admin --> createCatalogue["Create catalogue necklace"]
+  admin --> uploadCatalogueImage["Upload catalogue necklace image"]
+  admin --> deleteCatalogue["Delete catalogue necklace"]
+  admin --> manageCatalogue["Manage public catalogue"]
 ```
 
 # Data Modeling
@@ -55,7 +58,7 @@ erDiagram
     string name
     string email UK
     string password
-    boolean isAdmin
+    string role "enum: user, admin"
     object aiAnalysis
     date aiAnalysisSavedAt
     date createdAt
@@ -107,6 +110,7 @@ erDiagram
   USER ||--|| STYLE_PROFILE : has
   USER }o--o{ NECKLACE : wishlist
   USER ||--o{ NECKLACE : uploads
+  USER ||--o{ NECKLACE : administers_catalogue
   USER ||--o| EMAIL_VERIFICATION : verifies_signup_with
 ```
 
@@ -140,10 +144,11 @@ flowchart LR
   email -->|"OTP email"| user
 
   necklace -->|"Read catalogue and custom necklaces"| db
-  necklace -->|"Upload custom necklace image"| upload
+  necklace -->|"Upload custom or admin catalogue necklace image"| upload
   upload -->|"Store image file"| files
   upload -->|"File path / filename"| necklace
   necklace -->|"Save uploaded necklace metadata"| db
+  necklace -->|"Create / delete catalogue necklaces for admins"| db
 
   wishlist -->|"Read / update user wishlist"| db
 
@@ -163,7 +168,7 @@ Main collections:
 
 | Collection | Mongoose Model | Purpose |
 |---|---|---|
-| `users` | `User` | Stores registered users, hashed passwords, wishlist references, legacy style profile data, admin flag, and saved AI analysis results. |
+| `users` | `User` | Stores registered users, hashed passwords, wishlist references, legacy style profile data, role-based access (`user` or `admin`), and saved AI analysis results. |
 | `necklaces` | `Necklace` | Stores catalogue necklaces and user-uploaded custom necklaces, including try-on image paths and display metadata. |
 | `emailverifications` | `EmailVerification` | Temporarily stores signup OTP details until the user verifies their email. Expired records are removed through a TTL index. |
 
@@ -172,7 +177,9 @@ Important implementation details:
 - User passwords are hashed with `bcryptjs` before saving.
 - Authentication uses JWT tokens; protected routes use the `protect` middleware.
 - `User.wishlist` stores an array of `ObjectId` references to `Necklace`.
+- Admin access is controlled through `User.role`, which is an enum with `user` and `admin` values.
 - Custom necklaces are linked to their owner through `Necklace.uploadedBy`.
+- Catalogue necklaces are public records with `isCustom: false`; user-uploaded necklaces use `isCustom: true`.
 - Uploaded necklace files are saved in `backend/uploads`, while the database stores their URL paths.
 - AI style analysis results are stored directly on the user document in `User.aiAnalysis`.
 - The `Necklace` model defines indexes for category/style filtering, featured items, and uploaded necklaces.
@@ -189,7 +196,7 @@ classDiagram
     String password
     ObjectId[] wishlist
     StyleProfile styleProfile
-    Boolean isAdmin
+    String role
     Mixed aiAnalysis
     Date aiAnalysisSavedAt
     Date createdAt
@@ -255,6 +262,7 @@ classDiagram
     getAllNecklaces(req, res)
     getNecklaceById(req, res)
     createNecklace(req, res)
+    adminCreateNecklace(req, res)
     uploadCustomNecklace(req, res)
     getMyUploads(req, res)
     deleteNecklace(req, res)
@@ -288,6 +296,7 @@ classDiagram
 
   User "1" --> "0..*" Necklace : wishlist
   User "1" --> "0..*" Necklace : uploads custom
+  User "1" --> "0..*" Necklace : manages catalogue as admin
   User *-- StyleProfile
   Necklace *-- TryOnSettings
   AuthController --> User
@@ -379,9 +388,9 @@ flowchart TD
 
   tryon["Open virtual try-on"]
   selectNecklace["Select catalogue or uploaded necklace"]
-  uploadPhoto["Upload user photo"]
+  startCamera["Start webcam"]
   adjustTryon["Adjust scale and vertical offset"]
-  previewTryon["Preview necklace on photo"]
+  previewTryon["Preview necklace on live camera"]
 
   styleFeature["Open Find Your Style"]
   uploadSelfie["Upload selfie"]
@@ -401,6 +410,11 @@ flowchart TD
   customUpload{"Upload custom necklace?"}
   uploadNecklace["Upload PNG or WebP necklace image"]
   storeCustom["Store custom necklace in MongoDB and uploads folder"]
+  adminFeature["Open admin catalogue manager"]
+  adminAuth{"User role is admin?"}
+  adminUpload["Upload public catalogue necklace"]
+  adminDelete["Delete public catalogue necklace"]
+  updateCatalogue["Update Necklace records and uploads folder"]
 
   endNode((End))
 
@@ -417,7 +431,7 @@ flowchart TD
   customUpload -->|No| endNode
 
   chooseFeature --> tryon
-  tryon --> selectNecklace --> uploadPhoto --> adjustTryon --> previewTryon --> endNode
+  tryon --> selectNecklace --> startCamera --> adjustTryon --> previewTryon --> endNode
 
   chooseFeature --> styleFeature
   styleFeature --> uploadSelfie --> analyze --> qualityCheck
@@ -430,4 +444,12 @@ flowchart TD
   authForSave -->|No| authenticateSave
   authForSave -->|Yes| saveResult
   authenticateSave --> saveResult --> endNode
+
+  chooseFeature --> adminFeature
+  adminFeature --> adminAuth
+  adminAuth -->|No| endNode
+  adminAuth -->|Yes| adminUpload
+  adminAuth -->|Yes| adminDelete
+  adminUpload --> updateCatalogue --> endNode
+  adminDelete --> updateCatalogue
 ```

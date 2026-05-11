@@ -8,6 +8,7 @@ const {
   getAllNecklaces,
   getNecklaceById,
   createNecklace,
+  adminCreateNecklace,
   uploadCustomNecklace,
   getMyUploads,
   deleteNecklace,
@@ -40,6 +41,9 @@ router.post(
   ],
   createNecklace
 );
+
+// POST /api/necklaces/admin-upload — Create a catalogue necklace with image (admin only)
+router.post("/admin-upload", protect, adminOnly, upload.single("image"), adminCreateNecklace);
 
 // POST /api/necklaces/upload — Upload a custom necklace
 // upload.single("image") processes a single file from the "image" form field

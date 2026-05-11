@@ -9,6 +9,7 @@ import About    from './pages/About'
 import JewelryPage from './pages/JewelryPage'
 import MyStyle from './pages/MyStyle'
 import Wishlist from './pages/Wishlist'
+import AdminPage from './pages/AdminPage'
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/about"    element={<About />} />
           <Route path="/my-style" element={<MyStyle />} />
           <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/admin"    element={<AdminPage />} />
         </Routes>
         <Footer />
       </BrowserRouter>

@@ -87,8 +87,24 @@ export const deleteSavedAiAnalysis = () =>
 
 export const getMyUploads = () => request('/necklaces/my-uploads')
 
+export const deleteCatalogueNecklace = (id) =>
+  request(`/necklaces/${id}`, { method: 'DELETE' })
+
 export const deleteCustomNecklace = (id) =>
   request(`/necklaces/${id}`, { method: 'DELETE' })
+
+// ── Admin catalogue upload (multipart) ──────
+export async function createCatalogueNecklace(formData) {
+  const token = localStorage.getItem('token')
+  const res = await fetch(`${BASE_URL}/necklaces/admin-upload`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.message || 'Failed to create necklace')
+  return data
+}
 
 // ── Custom upload (multipart) ───────────────
 export async function uploadCustomNecklace(formData) {

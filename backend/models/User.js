@@ -45,21 +45,11 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    // --- Quiz-based style preferences (legacy) ---
-    styleProfile: {
-      preferredStyles: [String],
-      preferredMetals: [String],
-      occasions: [String],
-      budgetRange: {
-        min: { type: Number, default: 0 },
-        max: { type: Number, default: 10000 },
-      },
-    },
-
-    // --- Role ---
-    isAdmin: {
-      type: Boolean,
-      default: false,
+    // --- Role (RBAC) ---
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
     },
 
     // --- AI vision analysis result (saved from the style analysis pipeline) ---

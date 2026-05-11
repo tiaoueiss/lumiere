@@ -142,6 +142,60 @@ const createNecklace = async (req, res) => {
 };
 
 // ===========================================
+// POST /api/necklaces/admin-upload
+// ===========================================
+// Admin only: upload an image and create a catalogue necklace visible to all users.
+const adminCreateNecklace = async (req, res) => {
+  const uploadPath = req.file ? `/uploads/${req.file.filename}` : null;
+  try {
+    if (!uploadPath) {
+      return res.status(400).json({ success: false, message: 'Image file is required' });
+    }
+
+    const { name, description, price, category, style, metal, scale, offsetY } = req.body;
+
+    let necklace;
+    try {
+      necklace = await Necklace.create({
+        name:        name || 'New Necklace',
+        description: description || '',
+        price:       parseFloat(price) || 0,
+        category:    category || 'pendant',
+        style:       style   || 'modern',
+        metal:       metal   || 'gold',
+        image:       uploadPath,
+        tryOnImage:  uploadPath,
+        tryOnSettings: {
+          scale:   parseFloat(scale)   || 1.0,
+          offsetY: parseFloat(offsetY) || 0.04,
+        },
+        isCustom: false,
+        featured: false,
+      });
+    } catch (dbError) {
+      await deleteUploadFile(uploadPath);
+      throw dbError;
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Catalogue necklace created successfully',
+      data: { necklace },
+    });
+  } catch (error) {
+    if (uploadPath) await deleteUploadFile(uploadPath).catch(() => {});
+    console.error('Admin create necklace error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(error.errors).map(err => err.message).join(', '),
+      });
+    }
+    res.status(500).json({ success: false, message: 'Server error creating necklace' });
+  }
+};
+
+// ===========================================
 // POST /api/necklaces/upload
 // ===========================================
 // Uploads a custom necklace image (authenticated users).
@@ -239,20 +293,20 @@ const deleteNecklace = async (req, res) => {
       });
     }
 
-    // Catalogue items should not be removable through this route until
-    // a proper admin role exists.
-    if (!necklace.isCustom) {
+    // Admins can delete any necklace; regular users can only delete their own custom uploads.
+    const isAdmin = req.user.role === 'admin';
+    if (!necklace.isCustom && !isAdmin) {
       return res.status(403).json({
         success: false,
-        message:
-          "Catalogue necklaces cannot be deleted from the API yet. Delete them directly from the database or add an admin role first.",
+        message: 'Admin access required to delete catalogue necklaces',
       });
     }
 
-    if (!necklace.uploadedBy || necklace.uploadedBy.toString() !== req.user._id.toString()) {
+    if (necklace.isCustom && !isAdmin &&
+        (!necklace.uploadedBy || necklace.uploadedBy.toString() !== req.user._id.toString())) {
       return res.status(403).json({
         success: false,
-        message: "You can only delete your own custom necklaces",
+        message: 'You can only delete your own custom necklaces',
       });
     }
 
@@ -283,6 +337,7 @@ module.exports = {
   getAllNecklaces,
   getNecklaceById,
   createNecklace,
+  adminCreateNecklace,
   uploadCustomNecklace,
   getMyUploads,
   deleteNecklace,

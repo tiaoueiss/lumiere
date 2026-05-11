@@ -11,7 +11,9 @@ function getSlug(imagePath) {
 }
 
 function getTryOnId(necklace) {
-  return necklace.isCustom ? necklace._id : getSlug(necklace.tryOnImage || necklace.image)
+  if (necklace.isCustom) return necklace._id
+  const isSeeded = (necklace.image || '').includes('/uploads/necklaces/')
+  return isSeeded ? getSlug(necklace.tryOnImage || necklace.image) : necklace._id
 }
 
 function formatPrice(price) {

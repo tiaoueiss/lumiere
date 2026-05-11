@@ -7,11 +7,13 @@ import AuthModal from '../components/auth/AuthModal'
 import { fetchNecklaces, getWishlist, addToWishlist, removeFromWishlist } from '../api'
 
 const FILTERS = [
-  { label: 'All',     value: null },
-  { label: 'Choker',  value: 'choker' },
-  { label: 'Pendant', value: 'pendant' },
-  { label: 'Layered', value: 'layered' },
-  { label: 'Chain',   value: 'chain' },
+  { label: 'All',       value: null },
+  { label: 'Choker',    value: 'choker' },
+  { label: 'Pendant',   value: 'pendant' },
+  { label: 'Layered',   value: 'layered' },
+  { label: 'Chain',     value: 'chain' },
+  { label: 'Statement', value: 'statement' },
+  { label: 'Pearl',     value: 'pearl' },
 ]
 
 function getSlug(imagePath) {
@@ -19,7 +21,11 @@ function getSlug(imagePath) {
 }
 
 function getTryOnId(necklace) {
-  return necklace.isCustom ? necklace._id : getSlug(necklace.tryOnImage || necklace.image)
+  if (necklace.isCustom) return necklace._id
+  // Seeded necklaces live under /uploads/necklaces/ — their slug matches the static try-on catalogue ID.
+  // Admin-uploaded catalogue necklaces are stored directly in /uploads/ and use _id as the try-on ID.
+  const isSeeded = (necklace.image || '').includes('/uploads/necklaces/')
+  return isSeeded ? getSlug(necklace.tryOnImage || necklace.image) : necklace._id
 }
 
 function formatPrice(price) {

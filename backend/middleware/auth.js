@@ -79,10 +79,10 @@ const optionalProtect = async (req, res, next) => {
 // Rejects the request with 403 if the authenticated user is not an admin.
 // Must be used AFTER protect (relies on req.user being set).
 const adminOnly = (req, res, next) => {
-  if (!req.user?.isAdmin) {
+  if (req.user?.role !== 'admin') {
     return res.status(403).json({
       success: false,
-      message: "Admin access required",
+      message: 'Admin access required',
     });
   }
   next();

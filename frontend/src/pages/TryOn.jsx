@@ -8,7 +8,7 @@ import ControlSliders from '../components/tryon/ControlSliders'
 import UploadSection from '../components/tryon/UploadSection'
 import { NECKLACE_CATALOGUE } from '../data/necklaces'
 import { useAuth } from '../context/AuthContext'
-import { uploadCustomNecklace, getMyUploads, deleteCustomNecklace } from '../api'
+import { uploadCustomNecklace, getMyUploads, deleteCustomNecklace, fetchNecklaces } from '../api'
 
 export default function TryOn() {
   const [catalogue, setCatalogue] = useState(NECKLACE_CATALOGUE)
@@ -61,6 +61,32 @@ export default function TryOn() {
   }, [catalogue, activeId, setActiveId])
   
 
+  // Load admin-added catalogue necklaces that aren't in the static list.
+  useEffect(() => {
+    let cancelled = false
+    fetchNecklaces().then(res => {
+      if (cancelled) return
+      const extras = res.data.necklaces
+        .filter(n => !NECKLACE_CATALOGUE.some(c => c.id === n.image?.split('/').pop()?.replace(/\.[^.]+$/, '')))
+        .map(n => ({
+          id:          n._id,
+          name:        n.name,
+          type:        n.category.charAt(0).toUpperCase() + n.category.slice(1),
+          price:       `$${n.price}`,
+          yOffset:     n.tryOnSettings?.offsetY ?? 0.04,
+          widthRatio:  1.0,
+          scale:       n.tryOnSettings?.scale ?? 1.0,
+          src:         n.tryOnImage || n.image,
+          description: n.description,
+        }))
+      if (extras.length > 0) setCatalogue(prev => {
+        const existingIds = new Set(prev.map(n => n.id))
+        return [...prev, ...extras.filter(n => !existingIds.has(n.id))]
+      })
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
   // add new necklace entry to catalogue state after successful upload, which will trigger a re-render and display the new piece in the sidebar grid.
   const handleAdded = (entry) => {
     setCatalogue(prev => [...prev, entry])
@@ -70,7 +96,7 @@ export default function TryOn() {
   const [prevUser, setPrevUser] = useState(user)
   if (prevUser !== user) {
     setPrevUser(user)
-    if (!user) setCatalogue(NECKLACE_CATALOGUE)
+    if (!user) setCatalogue(prev => prev.filter(item => !item.isCustom))
   }
 
   // On mount, load any custom necklaces the user previously uploaded so they survive refresh.

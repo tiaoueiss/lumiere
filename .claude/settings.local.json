@@ -5,7 +5,8 @@
       "WebFetch(domain:console.groq.com)",
       "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\User\\\\Downloads\\\\fyp\\\\frontend\" -Force | Select-Object -Property Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} | Format-Table -AutoSize)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\User\\\\Downloads\\\\fyp\\\\backend\" -Recurse -Include \"*.js\")",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(node makeAdmin.js tiamariaoueiss@gmail.com)"
     ]
   }
 }
