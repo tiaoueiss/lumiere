@@ -5,7 +5,7 @@ import { fetchNecklaces, createCatalogueNecklace, deleteCatalogueNecklace } from
 
 const CATEGORIES = ['choker', 'pendant', 'layered', 'chain', 'statement', 'pearl']
 const STYLES     = ['minimalist', 'vintage', 'bold', 'classic', 'modern', 'bohemian', 'luxury']
-const METALS     = ['gold', 'silver', 'rose-gold', 'platinum', 'mixed']
+const METALS     = ['gold', 'silver', 'rose-gold', 'platinum', 'mixed', 'other']
 
 const EMPTY_FORM = {
   name: '', category: 'pendant', style: 'modern', metal: 'gold',
@@ -22,12 +22,13 @@ export default function AdminPage() {
     else if (user && user.role !== 'admin') navigate('/', { replace: true })
   }, [user, navigate])
 
-  const [necklaces, setNecklaces] = useState([])
-  const [form,      setForm]      = useState(EMPTY_FORM)
-  const [file,      setFile]      = useState(null)
-  const [preview,   setPreview]   = useState(null)
+  const [necklaces,  setNecklaces]  = useState([])
+  const [form,       setForm]       = useState(EMPTY_FORM)
+  const [file,       setFile]       = useState(null)
+  const [preview,    setPreview]    = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const [toast,     setToast]     = useState(null) // { type: 'success'|'error', msg }
+  const [toast,      setToast]      = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null) // { id, name }
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -78,8 +79,10 @@ export default function AdminPage() {
     }
   }
 
-  async function handleDelete(id, name) {
-    if (!window.confirm(`Delete "${name}" from the catalogue? This cannot be undone.`)) return
+  async function handleDelete() {
+    if (!confirmDelete) return
+    const { id, name } = confirmDelete
+    setConfirmDelete(null)
     try {
       await deleteCatalogueNecklace(id)
       setNecklaces(prev => prev.filter(n => n._id !== id))
@@ -190,7 +193,7 @@ export default function AdminPage() {
                       <p className="font-body text-xs text-muted capitalize">{n.category} · ${n.price}</p>
                     </div>
                     <button
-                      onClick={() => handleDelete(n._id, n.name)}
+                      onClick={() => setConfirmDelete({ id: n._id, name: n.name })}
                       title="Delete from catalogue"
                       className="flex-shrink-0 w-8 h-8 rounded-full border border-red-200 text-red-400
                         flex items-center justify-center hover:bg-red-50 transition-colors cursor-pointer"
@@ -206,6 +209,38 @@ export default function AdminPage() {
           }
         </div>
       </div>
+      {/* ── Delete confirmation modal ── */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm px-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center">
+            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round">
+                <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+              </svg>
+            </div>
+            <h3 className="font-display text-xl text-ink mb-2">Remove from Catalogue</h3>
+            <p className="font-body text-sm text-ink-2 mb-1">
+              Are you sure you want to delete
+            </p>
+            <p className="font-ui text-sm text-ink font-semibold mb-5">"{confirmDelete.name}"?</p>
+            <p className="font-body text-xs text-muted mb-6">This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 font-body text-sm px-4 py-2.5 rounded-full border border-gold/30 text-ink-2 hover:border-gold transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 font-body text-sm px-4 py-2.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

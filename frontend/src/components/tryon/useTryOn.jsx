@@ -271,6 +271,16 @@ export function useTryOn(catalogue) {
     if (cameraOn) preloadAllImages()
   }, [catalogue, cameraOn, preloadAllImages])
 
+  // Stop the camera and release the webcam when the component unmounts.
+  useEffect(() => {
+    return () => {
+      cameraRef.current?.stop()
+      faceMeshRef.current?.close()
+      const stream = videoRef.current?.srcObject
+      if (stream) stream.getTracks().forEach(t => t.stop())
+    }
+  }, [])
+
 
   const renderFrame = useCallback((results) => {
     const canvas = canvasRef.current
