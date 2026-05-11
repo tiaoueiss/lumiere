@@ -65,14 +65,6 @@ erDiagram
     date updatedAt
   }
 
-  STYLE_PROFILE {
-    string preferredStyles
-    string preferredMetals
-    string occasions
-    number budgetMin
-    number budgetMax
-  }
-
   NECKLACE {
     objectid _id PK
     string name
@@ -107,10 +99,8 @@ erDiagram
     date updatedAt
   }
 
-  USER ||--|| STYLE_PROFILE : has
   USER }o--o{ NECKLACE : wishlist
   USER ||--o{ NECKLACE : uploads
-  USER ||--o{ NECKLACE : administers_catalogue
   USER ||--o| EMAIL_VERIFICATION : verifies_signup_with
 ```
 
@@ -168,7 +158,7 @@ Main collections:
 
 | Collection | Mongoose Model | Purpose |
 |---|---|---|
-| `users` | `User` | Stores registered users, hashed passwords, wishlist references, legacy style profile data, role-based access (`user` or `admin`), and saved AI analysis results. |
+| `users` | `User` | Stores registered users, hashed passwords, wishlist references, role-based access (`user` or `admin`), and saved AI analysis results. |
 | `necklaces` | `Necklace` | Stores catalogue necklaces and user-uploaded custom necklaces, including try-on image paths and display metadata. |
 | `emailverifications` | `EmailVerification` | Temporarily stores signup OTP details until the user verifies their email. Expired records are removed through a TTL index. |
 
@@ -195,21 +185,12 @@ classDiagram
     String email
     String password
     ObjectId[] wishlist
-    StyleProfile styleProfile
     String role
     Mixed aiAnalysis
     Date aiAnalysisSavedAt
     Date createdAt
     Date updatedAt
     comparePassword(candidatePassword)
-  }
-
-  class StyleProfile {
-    String[] preferredStyles
-    String[] preferredMetals
-    String[] occasions
-    Number budgetMin
-    Number budgetMax
   }
 
   class Necklace {
@@ -296,8 +277,6 @@ classDiagram
 
   User "1" --> "0..*" Necklace : wishlist
   User "1" --> "0..*" Necklace : uploads custom
-  User "1" --> "0..*" Necklace : manages catalogue as admin
-  User *-- StyleProfile
   Necklace *-- TryOnSettings
   AuthController --> User
   AuthController --> EmailVerification
