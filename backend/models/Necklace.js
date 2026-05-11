@@ -1,8 +1,3 @@
-// ===========================================
-// models/Necklace.js — Necklace Schema
-// ===========================================
-// Defines what a "necklace" looks like in the database.
-// Covers both the pre-loaded catalogue items and user-uploaded custom ones.
 
 const mongoose = require("mongoose");
 
@@ -22,7 +17,6 @@ const necklaceSchema = new mongoose.Schema(
       maxlength: [500, "Description cannot exceed 500 characters"],
     },
 
-    // --- Pricing ---
     price: {
       type: Number,
       required: [true, "Price is required"],
@@ -65,7 +59,7 @@ const necklaceSchema = new mongoose.Schema(
 
     metal: {
       type: String,
-      enum: ["gold", "silver", "rose-gold", "platinum", "mixed"],
+      enum: ["gold", "silver", "rose-gold", "platinum", "mixed","other"],
     },
 
     // --- Images ---
@@ -84,8 +78,9 @@ const necklaceSchema = new mongoose.Schema(
     // --- Try-On Settings ---
     // These match what you have in data/necklaces.js
     tryOnSettings: {
-      scale: { type: Number, default: 1.0 },
-      offsetY: { type: Number, default: 0 },
+      scale:      { type: Number, default: 1.0 },
+      offsetY:    { type: Number, default: 0 },
+      widthRatio: { type: Number, default: 1.0 },
     },
 
     // --- Metadata ---
@@ -118,10 +113,8 @@ const necklaceSchema = new mongoose.Schema(
   }
 );
 
-// ===========================================
-// Index for faster queries
-// ===========================================
-// Makes searching by category and style much faster
+
+// using index makes searching by category and style much faster
 necklaceSchema.index({ category: 1, style: 1 });
 necklaceSchema.index({ featured: 1 });
 necklaceSchema.index({ uploadedBy: 1 });

@@ -12,12 +12,6 @@ const { sendSignupOtpEmail } = require("../services/emailService");
 const OTP_TTL_MINUTES = 10;
 const MAX_OTP_ATTEMPTS = 5;
 
-// ===========================================
-// Helper: Generate JWT Token
-// ===========================================
-// Creates a signed token containing the user's ID.
-// This token is what the client sends back on every request
-// to prove they're logged in.
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
@@ -54,9 +48,7 @@ const deleteUploadFile = async (uploadUrl) => {
   }
 };
 
-// ===========================================
-// POST /api/auth/signup/request-otp
-// ===========================================
+
 // Validates signup details, stores a short-lived OTP, and emails the code.
 const requestSignupOtp = async (req, res) => {
   try {
@@ -121,9 +113,7 @@ const requestSignupOtp = async (req, res) => {
   }
 };
 
-// ===========================================
-// POST /api/auth/signup/verify
-// ===========================================
+
 // Verifies the OTP, creates the user, and returns a JWT token.
 const verifySignupOtp = async (req, res) => {
   try {

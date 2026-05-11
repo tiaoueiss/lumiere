@@ -1,15 +1,8 @@
-// ===========================================
-// models/User.js — User Schema
-// ===========================================
-// Defines what a "user" looks like in our database.
-// Includes authentication fields + a wishlist of necklace references.
-
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    // --- Basic Info ---
     name: {
       type: String,
       required: [true, "Please provide your name"],
@@ -33,11 +26,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please provide a password"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false, // IMPORTANT: don't include password in queries by default
+      select: false, // don't include password in queries by default
     },
 
-    // --- Wishlist ---
-    // Array of references to Necklace documents
+  
     wishlist: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -45,14 +37,12 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    // --- Role (RBAC) ---
     role: {
       type: String,
       enum: ['user', 'admin'],
       default: 'user',
     },
 
-    // --- AI vision analysis result (saved from the style analysis pipeline) ---
     aiAnalysis: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
@@ -63,7 +53,6 @@ const userSchema = new mongoose.Schema(
     },
   },
   {
-    // Automatically adds createdAt and updatedAt fields
     timestamps: true,
   }
 );
@@ -83,12 +72,7 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// ===========================================
-// Instance Method: Compare passwords
-// ===========================================
-// Used during login to check if entered password matches stored hash.
-// "this.password" won't work here because select: false,
-// so we pass the hashed password explicitly from the controller.
+
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };

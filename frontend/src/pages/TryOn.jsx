@@ -6,12 +6,23 @@ import TryOnCanvas from '../components/tryon/TryOnCanvas'
 import NecklaceGrid from '../components/tryon/NecklaceGrid'
 import ControlSliders from '../components/tryon/ControlSliders'
 import UploadSection from '../components/tryon/UploadSection'
-import { NECKLACE_CATALOGUE } from '../data/necklaces'
 import { useAuth } from '../context/AuthContext'
 import { uploadCustomNecklace, getMyUploads, deleteCustomNecklace, fetchNecklaces } from '../api'
 
+const dbNecklaceToEntry = (n) => ({
+  id:          n._id,
+  name:        n.name,
+  type:        n.category.charAt(0).toUpperCase() + n.category.slice(1),
+  price:       `$${n.price}`,
+  yOffset:     n.tryOnSettings?.offsetY    ?? 0.04,
+  widthRatio:  n.tryOnSettings?.widthRatio ?? 1.0,
+  scale:       n.tryOnSettings?.scale      ?? 1.0,
+  src:         n.tryOnImage || n.image,
+  description: n.description,
+})
+
 export default function TryOn() {
-  const [catalogue, setCatalogue] = useState(NECKLACE_CATALOGUE)
+  const [catalogue, setCatalogue] = useState([])
   const [searchParams] = useSearchParams()
 
   // passes catalogue array into useTryOn which stores it as a ref
@@ -61,28 +72,12 @@ export default function TryOn() {
   }, [catalogue, activeId, setActiveId])
   
 
-  // Load admin-added catalogue necklaces that aren't in the static list.
+  // Load all catalogue necklaces from DB — single source of truth.
   useEffect(() => {
     let cancelled = false
     fetchNecklaces().then(res => {
       if (cancelled) return
-      const extras = res.data.necklaces
-        .filter(n => !NECKLACE_CATALOGUE.some(c => c.id === n.image?.split('/').pop()?.replace(/\.[^.]+$/, '')))
-        .map(n => ({
-          id:          n._id,
-          name:        n.name,
-          type:        n.category.charAt(0).toUpperCase() + n.category.slice(1),
-          price:       `$${n.price}`,
-          yOffset:     n.tryOnSettings?.offsetY ?? 0.04,
-          widthRatio:  1.0,
-          scale:       n.tryOnSettings?.scale ?? 1.0,
-          src:         n.tryOnImage || n.image,
-          description: n.description,
-        }))
-      if (extras.length > 0) setCatalogue(prev => {
-        const existingIds = new Set(prev.map(n => n.id))
-        return [...prev, ...extras.filter(n => !existingIds.has(n.id))]
-      })
+      setCatalogue(res.data.necklaces.map(dbNecklaceToEntry))
     }).catch(() => {})
     return () => { cancelled = true }
   }, [])

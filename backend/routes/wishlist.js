@@ -1,6 +1,4 @@
-// ===========================================
-// routes/wishlist.js — Wishlist / Favorites Routes
-// ===========================================
+
 // All wishlist routes require authentication (protect middleware).
 
 const express = require("express");

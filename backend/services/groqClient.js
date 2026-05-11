@@ -49,9 +49,6 @@ async function getObservations(base64, mediaType) {
  *   2A: Face geometry only  → shape, proportions, features
  *   2B: Color analysis only → undertone, skin depth, hair, contrast
  *
- * Both use the more capable Maverick model and run in parallel to keep latency low.
- * If either sub-pass fails or returns unusable JSON, falls back to single-pass Scout.
- *
  * Returns a JSON string in the same combined schema the controller expects.
  */
 async function getClassification(base64, mediaType, observations) {

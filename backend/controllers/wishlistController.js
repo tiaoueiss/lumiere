@@ -1,23 +1,13 @@
-// ===========================================
-// controllers/wishlistController.js — Wishlist / Favorites
-// ===========================================
-// Lets authenticated users save and remove necklaces
-// from their personal wishlist.
-
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Necklace = require("../models/Necklace");
 
-// ===========================================
-// GET /api/wishlist
-// ===========================================
-// Returns the user's wishlist with full necklace details.
 const getWishlist = async (req, res) => {
   try {
     // populate() replaces the ObjectId references with actual necklace data
     const user = await User.findById(req.user._id).populate(
       "wishlist",
-      "name image tryOnImage description price category style metal inStock isCustom uploadedBy tryOnSettings"
+      "name image tryOnImage description price category style metal inStock isCustom uploadedBy tryOnSettings",
     );
 
     res.status(200).json({
@@ -34,16 +24,14 @@ const getWishlist = async (req, res) => {
   }
 };
 
-// ===========================================
-// POST /api/wishlist/:necklaceId
-// ===========================================
-// Adds a necklace to the user's wishlist.
 const addToWishlist = async (req, res) => {
   try {
     const { necklaceId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(necklaceId)) {
-      return res.status(400).json({ success: false, message: "Invalid necklace ID" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid necklace ID" });
     }
 
     // Make sure the necklace actually exists
@@ -93,16 +81,14 @@ const addToWishlist = async (req, res) => {
   }
 };
 
-// ===========================================
-// DELETE /api/wishlist/:necklaceId
-// ===========================================
-// Removes a necklace from the user's wishlist.
 const removeFromWishlist = async (req, res) => {
   try {
     const { necklaceId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(necklaceId)) {
-      return res.status(400).json({ success: false, message: "Invalid necklace ID" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid necklace ID" });
     }
 
     const user = await User.findById(req.user._id);

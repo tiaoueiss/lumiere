@@ -8,10 +8,7 @@ const {
 } = require('../utils/responseValidator');
 const { UNDERTONE_INFO, FACE_SHAPE_RECS, SUBTYPE_PALETTES, DEPTH_MAKEUP } = require('../data/styleRecommendations');
 
-// this is the ai analyzer end point, 
-// so we can be more aggressive with retries and fallback logic to ensure a good 
-// user experience even if the ai is being difficult.
-
+// constraint:
 const MAX_RETRIES = 2;
 
 const DEEP_SKIN_DEPTHS = new Set(['Medium-Deep', 'Deep', 'Very Deep']);
@@ -22,6 +19,8 @@ const STRONG_COLOR_CATEGORIES = new Set(['Statement', 'Jewel tone', 'Warm accent
 const SOFT_COLOR_CATEGORIES = new Set(['Warm neutral', 'Cool neutral', 'Earth tone']);
 const VEIN_REFERENCE_PATTERN = /\bvein(s)?\b/i;
 
+
+// calculates how dark or light a color is
 function getLuminance(hex = '#888888') {
   if (typeof hex !== 'string' || !/^#[0-9A-Fa-f]{6}$/.test(hex)) return 0.5;
   const r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -29,7 +28,7 @@ function getLuminance(hex = '#888888') {
   const b = parseInt(hex.slice(5, 7), 16) / 255;
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
-
+// veins evidence helpers to avoid ai hallucinations
 function areVeinsClearlyVisible(observations = '') {
   const text = String(observations || '').toLowerCase();
 
@@ -89,12 +88,15 @@ function sanitizeUndertoneEvidence(undertone = {}, observations = '') {
   };
 }
 
+// light medium deep grouping for recommendation adjustments and depth-specific notes
 function getDepthGroup(skinDepth = 'Medium') {
   if (LIGHT_SKIN_DEPTHS.has(skinDepth)) return 'light';
   if (DEEP_SKIN_DEPTHS.has(skinDepth)) return 'deep';
   return 'medium';
 }
 
+//checks how strong undertone result is
+// spread is the difference between the top two undertone scores, which indicates how clearly the undertone leans in one direction.
 function getUndertoneMagnitude(undertone = {}) {
   const scores = undertone.scores || {};
   const values = [Number(scores.warm) || 0, Number(scores.cool) || 0, Number(scores.neutral) || 0]
@@ -105,6 +107,7 @@ function getUndertoneMagnitude(undertone = {}) {
   return 'soft';
 }
 
+// scores how suitable a color is for the user
 function scoreColorForProfile(color, profile) {
   const luminance = getLuminance(color.hex);
   let score = 0;
@@ -144,13 +147,14 @@ function scoreColorForProfile(color, profile) {
 
   return score;
 }
-
+// sorts colors using scoreColorForProfile and returns the best ones. 
 function pickProfileColors(colors = [], profile, max) {
   return [...colors]
     .sort((a, b) => scoreColorForProfile(b, profile) - scoreColorForProfile(a, profile))
     .slice(0, max);
 }
 
+// rank hair shades based on skin depth, contrast level and current hair
 function scoreHairShadeForProfile(shade, profile, currentCategory) {
   const luminance = getLuminance(shade.hex);
   let score = 0;
@@ -170,6 +174,7 @@ function scoreHairShadeForProfile(shade, profile, currentCategory) {
   return score;
 }
 
+// returns recommended shades and shades to avoid
 function pickHairSuggestions(hair = {}, profile, currentCategory) {
   const recommended = [...(hair.recommended || [])]
     .sort((a, b) => scoreHairShadeForProfile(b, profile, currentCategory) - scoreHairShadeForProfile(a, profile, currentCategory))
@@ -224,6 +229,9 @@ function buildMetalReason(baseReason, profile) {
   return `${baseReason} ${depthSentence} ${contrastSentence}`.trim();
 }
 
+// ai gives scores for warm, cool and neutral
+// but raw ai is messy so the function decides how to interpret those scores into a final undertone result for the profile, 
+// and also sanitizes any vein-related evidence if veins aren't clearly visible to avoid confusion and hallucinated details.
 function normalizeUndertone(undertone = {}, lightingQuality = 'UNKNOWN') {
   const scores = undertone.scores || {};
   const warm = Number(scores.warm) || 0;
@@ -279,6 +287,8 @@ function normalizeUndertone(undertone = {}, lightingQuality = 'UNKNOWN') {
   return top.label;
 }
 
+
+// uses undertone, contrast level, and skin depth to determine the user's seasonal subtype, then picks personalized palette, accents, neutrals, colors to avoid, and hair suggestions based on that subtype and profile.
 function derivePersonalSubtype(undertoneResult, skinDepth, hairCategory, contrastLevel) {
   const isLight = LIGHT_SKIN_DEPTHS.has(skinDepth);
   const isDeep = DEEP_SKIN_DEPTHS.has(skinDepth);
@@ -317,6 +327,7 @@ function derivePersonalSubtype(undertoneResult, skinDepth, hairCategory, contras
   return { season: 'Spring', subtype: 'Soft Spring' };
 }
 
+// ai analysis + curated recommendation data from styleRecommendations.js
 function buildPersonalizedInfo(baseInfo, analysis) {
   const undertoneResult = normalizeUndertone(analysis.undertone, analysis.lightingQuality);
   const seasonProfile = derivePersonalSubtype(

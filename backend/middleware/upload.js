@@ -1,9 +1,7 @@
-// ===========================================
-// middleware/upload.js — File Upload Handling
-// ===========================================
+
 // Uses Multer to handle file uploads (for custom necklace images).
 // Validates file type (PNG/WebP only) and limits file size.
-//
+
 // Multer is middleware that processes multipart/form-data,
 // which is what browsers send when you upload files via a form.
 

@@ -1,14 +1,3 @@
-// ===========================================
-// middleware/auth.js — Authentication Middleware
-// ===========================================
-// This middleware protects routes that require login.
-// It checks for a valid JWT token in the request header.
-//
-// How it works:
-// 1. Client sends request with header: Authorization: Bearer <token>
-// 2. This middleware extracts and verifies the token
-// 3. If valid, it attaches the user to req.user and calls next()
-// 4. If invalid, it sends a 401 Unauthorized response
 
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");

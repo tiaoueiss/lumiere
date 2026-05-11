@@ -1,12 +1,3 @@
-// ===========================================
-// controllers/necklaceController.js — Necklace CRUD + Upload
-// ===========================================
-// Handles all necklace-related operations:
-// - Get all necklaces (with filtering)
-// - Get a single necklace by ID
-// - Create a new catalogue necklace (admin)
-// - Upload a custom necklace (authenticated user)
-// - Update and delete necklaces
 
 const fs = require("fs/promises");
 const path = require("path");
@@ -34,11 +25,6 @@ const deleteUploadFile = async (uploadUrl) => {
   }
 };
 
-// ===========================================
-// GET /api/necklaces
-// ===========================================
-// Returns all necklaces with optional filters.
-// Query params: ?category=pendant&style=minimalist&metal=gold&featured=true
 const getAllNecklaces = async (req, res) => {
   try {
     // Build a filter object from query parameters
@@ -70,10 +56,6 @@ const getAllNecklaces = async (req, res) => {
   }
 };
 
-// ===========================================
-// GET /api/necklaces/:id
-// ===========================================
-// Returns a single necklace by its MongoDB ID.
 const getNecklaceById = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -111,10 +93,7 @@ const getNecklaceById = async (req, res) => {
   }
 };
 
-// ===========================================
-// POST /api/necklaces
-// ===========================================
-// Creates a new catalogue necklace (for seeding/admin use).
+
 const createNecklace = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -141,10 +120,6 @@ const createNecklace = async (req, res) => {
   }
 };
 
-// ===========================================
-// POST /api/necklaces/admin-upload
-// ===========================================
-// Admin only: upload an image and create a catalogue necklace visible to all users.
 const adminCreateNecklace = async (req, res) => {
   const uploadPath = req.file ? `/uploads/${req.file.filename}` : null;
   try {
@@ -195,11 +170,7 @@ const adminCreateNecklace = async (req, res) => {
   }
 };
 
-// ===========================================
-// POST /api/necklaces/upload
-// ===========================================
-// Uploads a custom necklace image (authenticated users).
-// The file is handled by the Multer middleware before this runs.
+
 const uploadCustomNecklace = async (req, res) => {
   try {
     // Multer attaches the file info to req.file
@@ -250,10 +221,7 @@ const uploadCustomNecklace = async (req, res) => {
   }
 };
 
-// ===========================================
-// GET /api/necklaces/my-uploads
-// ===========================================
-// Returns all custom necklaces uploaded by the current user.
+
 const getMyUploads = async (req, res) => {
   try {
     const necklaces = await Necklace.find({
@@ -275,10 +243,7 @@ const getMyUploads = async (req, res) => {
   }
 };
 
-// ===========================================
-// DELETE /api/necklaces/:id
-// ===========================================
-// Deletes a necklace. Users can only delete their own custom uploads.
+
 const deleteNecklace = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {

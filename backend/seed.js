@@ -28,7 +28,7 @@ const catalogue = [
     metal:       "gold",
     featured:    true,
     tags:        ["everyday", "elegant"],
-    tryOnSettings: { scale: 1.15, offsetY: -0.01 },
+    tryOnSettings: { scale: 1.10, offsetY: -0.01, widthRatio: 0.82 },
   },
   {
     slug:        "pendant",
@@ -40,7 +40,7 @@ const catalogue = [
     metal:       "silver",
     featured:    true,
     tags:        ["everyday", "gift", "delicate"],
-    tryOnSettings: { scale: 0.95, offsetY: 0.06 },
+    tryOnSettings: { scale: 0.95, offsetY: 0.06, widthRatio: 0.95 },
   },
   {
     slug:        "layered",
@@ -52,7 +52,7 @@ const catalogue = [
     metal:       "gold",
     featured:    false,
     tags:        ["casual", "layered", "modern"],
-    tryOnSettings: { scale: 1.35, offsetY: 0.06 },
+    tryOnSettings: { scale: 1.35, offsetY: 0.06, widthRatio: 0.60 },
   },
   {
     slug:        "diamond",
@@ -64,7 +64,7 @@ const catalogue = [
     metal:       "gold",
     featured:    true,
     tags:        ["luxury", "formal", "wedding"],
-    tryOnSettings: { scale: 1.30, offsetY: -0.03 },
+    tryOnSettings: { scale: 1.30, offsetY: -0.03, widthRatio: 0.60 },
   },
   {
     slug:        "tennis",
@@ -76,7 +76,7 @@ const catalogue = [
     metal:       "gold",
     featured:    true,
     tags:        ["luxury", "wedding", "formal"],
-    tryOnSettings: { scale: 1.25, offsetY: 0.09 },
+    tryOnSettings: { scale: 1.25, offsetY: 0.01, widthRatio: 0.65 },
   },
   {
     slug:        "opera",
@@ -88,7 +88,7 @@ const catalogue = [
     metal:       "gold",
     featured:    false,
     tags:        ["formal", "elegant", "statement"],
-    tryOnSettings: { scale: 1.35, offsetY: -0.11 },
+    tryOnSettings: { scale: 1.35, offsetY: -0.11, widthRatio: 0.70 },
   },
   {
     slug:        "floral",
@@ -100,7 +100,7 @@ const catalogue = [
     metal:       "rose-gold",
     featured:    false,
     tags:        ["romantic", "vintage", "gift"],
-    tryOnSettings: { scale: 1.15, offsetY: 0.03 },
+    tryOnSettings: { scale: 1.15, offsetY: 0.03, widthRatio: 0.60 },
   },
 ];
 
