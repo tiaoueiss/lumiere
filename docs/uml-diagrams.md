@@ -1,7 +1,7 @@
-# UML Modeling Diagrams
+# Diagrams
 
 These diagrams describe the Lumiere jewelry styling application based on the current React frontend and Express/MongoDB backend.
-
+# UML Modeling
 ## Use Case Diagram
 
 ```mermaid
@@ -46,135 +46,6 @@ flowchart LR
   admin --> deleteCatalogue["Delete catalogue necklace"]
   admin --> manageCatalogue["Manage public catalogue"]
 ```
-
-# Data Modeling
-
-## E-R Diagram
-
-```mermaid
-erDiagram
-  USER {
-    objectid _id PK
-    string name
-    string email UK
-    string password
-    string role "enum: user, admin"
-    object aiAnalysis
-    date aiAnalysisSavedAt
-    date createdAt
-    date updatedAt
-  }
-
-  NECKLACE {
-    objectid _id PK
-    string name
-    string description
-    number price
-    string currency
-    string category
-    string style
-    string metal
-    string image
-    string tryOnImage
-    number tryOnScale
-    number tryOnOffsetY
-    boolean isCustom
-    objectid uploadedBy FK
-    boolean inStock
-    boolean featured
-    string tags
-    date createdAt
-    date updatedAt
-  }
-
-  EMAIL_VERIFICATION {
-    objectid _id PK
-    string name
-    string email UK
-    string passwordHash
-    string otpHash
-    number attempts
-    date expiresAt
-    date createdAt
-    date updatedAt
-  }
-
-  USER }o--o{ NECKLACE : wishlist
-  USER ||--o{ NECKLACE : uploads
-  USER ||--o| EMAIL_VERIFICATION : verifies_signup_with
-```
-
-## Data Flow Diagram
-
-```mermaid
-flowchart LR
-  user["User"]
-  frontend["React Frontend"]
-  api["Express API"]
-  auth["Authentication Controller"]
-  necklace["Necklace Controller"]
-  wishlist["Wishlist Controller"]
-  styleCtrl["Style Analysis Controller"]
-  upload["Upload Middleware"]
-  db[("MongoDB Database")]
-  files[("Uploads Folder")]
-  ai["Groq AI Service"]
-  email["Email Service"]
-
-  user -->|"Signup, login, browse, try-on, style requests"| frontend
-  frontend -->|"HTTP requests"| api
-
-  api --> auth
-  api --> necklace
-  api --> wishlist
-  api --> styleCtrl
-
-  auth -->|"Create pending OTP, create user, read profile"| db
-  auth -->|"Send verification code"| email
-  email -->|"OTP email"| user
-
-  necklace -->|"Read catalogue and custom necklaces"| db
-  necklace -->|"Upload custom or admin catalogue necklace image"| upload
-  upload -->|"Store image file"| files
-  upload -->|"File path / filename"| necklace
-  necklace -->|"Save uploaded necklace metadata"| db
-  necklace -->|"Create / delete catalogue necklaces for admins"| db
-
-  wishlist -->|"Read / update user wishlist"| db
-
-  styleCtrl -->|"Preprocessed selfie and prompts"| ai
-  ai -->|"Observations, classification, personalization"| styleCtrl
-  styleCtrl -->|"Save / read / delete AI analysis"| db
-
-  api -->|"JSON responses"| frontend
-  frontend -->|"Rendered pages and results"| user
-```
-
-## Database Implementation
-
-The project uses MongoDB with Mongoose in the Express backend. The connection is created in `backend/config/db.js` and initialized from `backend/server.js` before the API routes are registered.
-
-Main collections:
-
-| Collection | Mongoose Model | Purpose |
-|---|---|---|
-| `users` | `User` | Stores registered users, hashed passwords, wishlist references, role-based access (`user` or `admin`), and saved AI analysis results. |
-| `necklaces` | `Necklace` | Stores catalogue necklaces and user-uploaded custom necklaces, including try-on image paths and display metadata. |
-| `emailverifications` | `EmailVerification` | Temporarily stores signup OTP details until the user verifies their email. Expired records are removed through a TTL index. |
-
-Important implementation details:
-
-- User passwords are hashed with `bcryptjs` before saving.
-- Authentication uses JWT tokens; protected routes use the `protect` middleware.
-- `User.wishlist` stores an array of `ObjectId` references to `Necklace`.
-- Admin access is controlled through `User.role`, which is an enum with `user` and `admin` values.
-- Custom necklaces are linked to their owner through `Necklace.uploadedBy`.
-- Catalogue necklaces are public records with `isCustom: false`; user-uploaded necklaces use `isCustom: true`.
-- Uploaded necklace files are saved in `backend/uploads`, while the database stores their URL paths.
-- AI style analysis results are stored directly on the user document in `User.aiAnalysis`.
-- The `Necklace` model defines indexes for category/style filtering, featured items, and uploaded necklaces.
-- The `EmailVerification.expiresAt` field has a TTL index so pending signup records expire automatically.
-
 ## Class Diagram
 
 ```mermaid
@@ -432,3 +303,132 @@ flowchart TD
   adminUpload --> updateCatalogue --> endNode
   adminDelete --> updateCatalogue
 ```
+# Data Modeling
+
+## E-R Diagram
+
+```mermaid
+erDiagram
+  USER {
+    objectid _id PK
+    string name
+    string email UK
+    string password
+    string role "enum: user, admin"
+    object aiAnalysis
+    date aiAnalysisSavedAt
+    date createdAt
+    date updatedAt
+  }
+
+  NECKLACE {
+    objectid _id PK
+    string name
+    string description
+    number price
+    string currency
+    string category
+    string style
+    string metal
+    string image
+    string tryOnImage
+    number tryOnScale
+    number tryOnOffsetY
+    boolean isCustom
+    objectid uploadedBy FK
+    boolean inStock
+    boolean featured
+    string tags
+    date createdAt
+    date updatedAt
+  }
+
+  EMAIL_VERIFICATION {
+    objectid _id PK
+    string name
+    string email UK
+    string passwordHash
+    string otpHash
+    number attempts
+    date expiresAt
+    date createdAt
+    date updatedAt
+  }
+
+  USER }o--o{ NECKLACE : wishlist
+  USER ||--o{ NECKLACE : uploads
+  USER ||--o| EMAIL_VERIFICATION : verifies_signup_with
+```
+
+## Data Flow Diagram
+
+```mermaid
+flowchart LR
+  user["User"]
+  frontend["React Frontend"]
+  api["Express API"]
+  auth["Authentication Controller"]
+  necklace["Necklace Controller"]
+  wishlist["Wishlist Controller"]
+  styleCtrl["Style Analysis Controller"]
+  upload["Upload Middleware"]
+  db[("MongoDB Database")]
+  files[("Uploads Folder")]
+  ai["Groq AI Service"]
+  email["Email Service"]
+
+  user -->|"Signup, login, browse, try-on, style requests"| frontend
+  frontend -->|"HTTP requests"| api
+
+  api --> auth
+  api --> necklace
+  api --> wishlist
+  api --> styleCtrl
+
+  auth -->|"Create pending OTP, create user, read profile"| db
+  auth -->|"Send verification code"| email
+  email -->|"OTP email"| user
+
+  necklace -->|"Read catalogue and custom necklaces"| db
+  necklace -->|"Upload custom or admin catalogue necklace image"| upload
+  upload -->|"Store image file"| files
+  upload -->|"File path / filename"| necklace
+  necklace -->|"Save uploaded necklace metadata"| db
+  necklace -->|"Create / delete catalogue necklaces for admins"| db
+
+  wishlist -->|"Read / update user wishlist"| db
+
+  styleCtrl -->|"Preprocessed selfie and prompts"| ai
+  ai -->|"Observations, classification, personalization"| styleCtrl
+  styleCtrl -->|"Save / read / delete AI analysis"| db
+
+  api -->|"JSON responses"| frontend
+  frontend -->|"Rendered pages and results"| user
+```
+
+## Database Implementation
+
+The project uses MongoDB with Mongoose in the Express backend. The connection is created in `backend/config/db.js` and initialized from `backend/server.js` before the API routes are registered.
+
+Main collections:
+
+| Collection | Mongoose Model | Purpose |
+|---|---|---|
+| `users` | `User` | Stores registered users, hashed passwords, wishlist references, role-based access (`user` or `admin`), and saved AI analysis results. |
+| `necklaces` | `Necklace` | Stores catalogue necklaces and user-uploaded custom necklaces, including try-on image paths and display metadata. |
+| `emailverifications` | `EmailVerification` | Temporarily stores signup OTP details until the user verifies their email. Expired records are removed through a TTL index. |
+
+Important implementation details:
+
+- User passwords are hashed with `bcryptjs` before saving.
+- Authentication uses JWT tokens; protected routes use the `protect` middleware.
+- `User.wishlist` stores an array of `ObjectId` references to `Necklace`.
+- Admin access is controlled through `User.role`, which is an enum with `user` and `admin` values.
+- Custom necklaces are linked to their owner through `Necklace.uploadedBy`.
+- Catalogue necklaces are public records with `isCustom: false`; user-uploaded necklaces use `isCustom: true`.
+- Uploaded necklace files are saved in `backend/uploads`, while the database stores their URL paths.
+- AI style analysis results are stored directly on the user document in `User.aiAnalysis`.
+- The `Necklace` model defines indexes for category/style filtering, featured items, and uploaded necklaces.
+- The `EmailVerification.expiresAt` field has a TTL index so pending signup records expire automatically.
+
+
