@@ -268,7 +268,7 @@ flowchart LR
   auth["Auth Controller"]
   necklace["Necklace Controller"]
   wishlist["Wishlist Controller"]
-  style["Style Analysis / Follow-up Controllers"]
+  styleanalysis["Style Analysis / Follow-up Controllers"]
   upload["Multer Upload Middleware"]
   db[("MongoDB")]
   files[("backend/uploads")]
@@ -292,9 +292,9 @@ flowchart LR
   upload --> files
   wishlist -->|"User wishlist refs"| db
 
-  style -->|"Preprocessed image / prompts"| ai
+  styleanalysis -->|"Preprocessed image / prompts"| ai
   ai -->|"Observations, classification, personalization"| style
-  style -->|"Saved analysis"| db
+  styleanalysis -->|"Saved analysis"| db
 
   api --> frontend
   frontend --> user
