@@ -1,7 +1,7 @@
 # Diagrams
 
-These diagrams describe the Lumiere jewelry styling application based on the current React frontend and Express/MongoDB backend.
-# UML Modeling
+These diagrams describe the current Lumiere React frontend, Express backend, and MongoDB data model.
+
 ## Use Case Diagram
 
 ```mermaid
@@ -9,43 +9,92 @@ flowchart LR
   visitor["Visitor"]
   user["Registered User"]
   admin["Admin"]
-  ai["AI Style Analysis Service"]
+  ai["Groq AI Service"]
   email["Email Service"]
 
   visitor --> browse["Browse necklace catalogue"]
-  visitor --> filter["Filter necklaces by category, style, metal, stock, or featured"]
   visitor --> tryon["Use virtual necklace try-on"]
   visitor --> analyze["Analyze style from selfie"]
-  visitor --> signupOtp["Request signup verification code"]
-  visitor --> verifySignup["Verify OTP and create account"]
+  visitor --> signup["Sign up with OTP"]
   visitor --> login["Log in"]
 
-  signupOtp --> email
+  signup --> email
   analyze --> ai
 
   user --> browse
   user --> tryon
   user --> analyze
   user --> followup["Ask style follow-up questions"]
-  user --> saveAnalysis["Save AI style analysis"]
-  user --> viewSaved["View saved style analysis"]
-  user --> deleteSaved["Delete saved style analysis"]
-  user --> wishlistAdd["Add necklace to wishlist"]
-  user --> wishlistView["View wishlist"]
-  user --> wishlistRemove["Remove necklace from wishlist"]
-  user --> uploadCustom["Upload custom necklace"]
-  user --> viewUploads["View custom necklace uploads"]
-  user --> deleteCustom["Delete own custom necklace"]
-  user --> viewProfile["View profile"]
+  user --> saveAnalysis["Save / view / delete style analysis"]
+  user --> wishlist["Manage wishlist"]
+  user --> customUpload["Upload / view / delete own custom necklaces"]
   user --> deleteAccount["Delete account"]
 
   followup --> ai
 
-  admin --> createCatalogue["Create catalogue necklace"]
-  admin --> uploadCatalogueImage["Upload catalogue necklace image"]
-  admin --> deleteCatalogue["Delete catalogue necklace"]
-  admin --> manageCatalogue["Manage public catalogue"]
+  admin --> browse
+  admin --> tryon
+  admin --> analyze
+  admin --> manageCatalogue["Upload and delete public catalogue necklaces"]
 ```
+
+## E-R Diagram
+
+```mermaid
+erDiagram
+  USER {
+    objectid _id PK
+    string name
+    string email UK
+    string password
+    string role "enum: user, admin"
+    objectid[] wishlist FK
+    object aiAnalysis
+    date aiAnalysisSavedAt
+    date createdAt
+    date updatedAt
+  }
+
+  NECKLACE {
+    objectid _id PK
+    string name
+    string description
+    number price
+    string currency
+    string category "enum"
+    string style "enum"
+    string metal "enum"
+    string image
+    string tryOnImage
+    number tryOnScale
+    number tryOnOffsetY
+    number tryOnWidthRatio
+    boolean isCustom
+    objectid uploadedBy FK
+    boolean inStock
+    boolean featured
+    string[] tags
+    date createdAt
+    date updatedAt
+  }
+
+  EMAIL_VERIFICATION {
+    objectid _id PK
+    string name
+    string email UK
+    string passwordHash
+    string otpHash
+    number attempts
+    date expiresAt
+    date createdAt
+    date updatedAt
+  }
+
+  USER }o--o{ NECKLACE : wishlist
+  USER ||--o{ NECKLACE : uploads_custom
+  EMAIL_VERIFICATION }o--|| USER : creates_after_verification
+```
+
 ## Class Diagram
 
 ```mermaid
@@ -88,6 +137,7 @@ classDiagram
   class TryOnSettings {
     Number scale
     Number offsetY
+    Number widthRatio
   }
 
   class EmailVerification {
@@ -128,16 +178,19 @@ classDiagram
 
   class StyleAnalysisController {
     styleAnalysisHandler(req, res)
-    preprocessImage()
+    normalizeUndertone()
+    buildPersonalizedInfo()
+    mergeStylingContent()
+  }
+
+  class GroqClient {
     getObservations()
     getClassification()
     getStylePersonalization()
-    buildPersonalizedInfo()
   }
 
   class StyleFollowUpController {
     styleFollowUpHandler(req, res)
-    askStyleFollowUp()
   }
 
   class AuthMiddleware {
@@ -156,208 +209,53 @@ classDiagram
   NecklaceController --> User
   WishlistController --> User
   WishlistController --> Necklace
-  StyleAnalysisController --> User : saves optional result
-  StyleFollowUpController --> StyleAnalysisController : uses analysis result
+  StyleAnalysisController --> GroqClient
+  StyleAnalysisController --> User : saves result
+  StyleFollowUpController --> GroqClient
   AuthMiddleware --> User
 ```
 
-## Sequence Diagram
-
-This sequence shows the main AI style analysis workflow, including optional saving for authenticated users.
+## AI Style Analysis Sequence
 
 ```mermaid
 sequenceDiagram
   actor U as User
   participant FE as React Frontend
   participant API as Express API
-  participant Auth as optionalProtect Middleware
+  participant Auth as optionalProtect
   participant Img as Image Processor
-  participant AI as Groq Vision / AI Service
+  participant AI as Groq AI Service
   participant Val as Response Validator
-  participant Rec as Recommendation Data
   participant DB as MongoDB
 
-  U->>FE: Upload selfie for style analysis
-  FE->>FE: Convert image to base64 and resize if needed
+  U->>FE: Upload selfie
+  FE->>FE: Convert image to base64
   FE->>API: POST /api/style-analysis
-  API->>Auth: Attach user when JWT is valid
-  Auth-->>API: Continue request
-  API->>API: Validate base64 image format
-  API->>Img: preprocessImage(rawBase64, mediaType)
-  Img-->>API: Processed image and quality flags
+  API->>Auth: Attach user if JWT is valid
+  API->>Img: preprocessImage()
+  Img-->>API: Processed image + quality flags
 
-  alt Photo too dark or low quality
-    API-->>FE: 400 with improvement message
-    FE-->>U: Show error and retry guidance
-  else Photo acceptable
-    API->>AI: getObservations(processed image)
-    AI-->>API: Face and image observations
-    API->>Val: validateFaceObservations(observations)
+  alt Invalid image or no face
+    API-->>FE: 400 error message
+  else Image usable
+    API->>AI: Observation pass
+    AI-->>API: Observations
+    API->>Val: validateFaceObservations()
+    API->>AI: Face geometry + color analysis
+    AI-->>API: Classification JSON/text
+    API->>Val: parseClassification()
+    API->>API: Normalize and enrich with curated data
+    API->>AI: Style personalization
+    AI-->>API: Personalized styling content
+    API-->>FE: Final style analysis result
+    FE-->>U: Display results
 
-    alt No visible human face
-      API-->>FE: 400 with selfie guidance
-      FE-->>U: Show correction message
-    else Face detected
-      loop Up to 3 classification attempts
-        API->>AI: getClassification(image, observations)
-        AI-->>API: Raw classification JSON/text
-        API->>Val: parseClassification(raw response)
-      end
-
-      API->>Rec: Load undertone, face-shape, palette, makeup, and hair recommendations
-      API->>AI: getStylePersonalization(profile context)
-      AI-->>API: Personalized styling content
-      API->>Val: parsePersonalization(raw content)
-      API-->>FE: Analysis result with undertone, face shape, metals, outfit colors, hair, and metadata
-      FE-->>U: Display style results
-
-      opt User chooses save analysis
-        FE->>API: POST /api/style-analysis/save
-        API->>DB: Update User.aiAnalysis and aiAnalysisSavedAt
-        DB-->>API: Save complete
-        API-->>FE: success true
-      end
+    opt Save result
+      FE->>API: POST /api/style-analysis/save
+      API->>DB: Update User.aiAnalysis and aiAnalysisSavedAt
+      API-->>FE: success
     end
   end
-```
-
-## Activity Diagram
-
-```mermaid
-flowchart TD
-  start((Start))
-  openApp["Open Lumiere web app"]
-  chooseFeature{"Choose feature"}
-
-  catalogue["Browse jewellery catalogue"]
-  filters["Apply necklace filters"]
-  necklaceDetails["View necklace details"]
-  wishlistDecision{"Logged in and wants wishlist?"}
-  authForWishlist{"User has account?"}
-  addWishlist["Add or remove necklace from wishlist"]
-
-  tryon["Open virtual try-on"]
-  selectNecklace["Select catalogue or uploaded necklace"]
-  startCamera["Start webcam"]
-  adjustTryon["Adjust scale and vertical offset"]
-  previewTryon["Preview necklace on live camera"]
-
-  styleFeature["Open Find Your Style"]
-  uploadSelfie["Upload selfie"]
-  analyze["Submit photo for AI analysis"]
-  qualityCheck{"Image valid and face visible?"}
-  showFix["Show photo improvement message"]
-  showResults["Show undertone, face shape, metal, palette, makeup, and hair recommendations"]
-  followUp{"Ask follow-up question?"}
-  answerFollowUp["Return style-related answer"]
-  saveChoice{"Save result?"}
-  authForSave{"Logged in?"}
-  saveResult["Save result to user profile"]
-
-  authenticateWishlist["Sign up with OTP or log in"]
-  authenticateSave["Sign up with OTP or log in"]
-
-  customUpload{"Upload custom necklace?"}
-  uploadNecklace["Upload PNG or WebP necklace image"]
-  storeCustom["Store custom necklace in MongoDB and uploads folder"]
-  adminFeature["Open admin catalogue manager"]
-  adminAuth{"User role is admin?"}
-  adminUpload["Upload public catalogue necklace"]
-  adminDelete["Delete public catalogue necklace"]
-  updateCatalogue["Update Necklace records and uploads folder"]
-
-  endNode((End))
-
-  start --> openApp --> chooseFeature
-
-  chooseFeature --> catalogue
-  catalogue --> filters --> necklaceDetails --> wishlistDecision
-  wishlistDecision -->|Yes| authForWishlist
-  wishlistDecision -->|No| endNode
-  authForWishlist -->|No| authenticateWishlist
-  authForWishlist -->|Yes| addWishlist
-  authenticateWishlist --> addWishlist --> customUpload
-  customUpload -->|Yes| uploadNecklace --> storeCustom --> endNode
-  customUpload -->|No| endNode
-
-  chooseFeature --> tryon
-  tryon --> selectNecklace --> startCamera --> adjustTryon --> previewTryon --> endNode
-
-  chooseFeature --> styleFeature
-  styleFeature --> uploadSelfie --> analyze --> qualityCheck
-  qualityCheck -->|No| showFix --> uploadSelfie
-  qualityCheck -->|Yes| showResults --> followUp
-  followUp -->|Yes| answerFollowUp --> saveChoice
-  followUp -->|No| saveChoice
-  saveChoice -->|Yes| authForSave
-  saveChoice -->|No| endNode
-  authForSave -->|No| authenticateSave
-  authForSave -->|Yes| saveResult
-  authenticateSave --> saveResult --> endNode
-
-  chooseFeature --> adminFeature
-  adminFeature --> adminAuth
-  adminAuth -->|No| endNode
-  adminAuth -->|Yes| adminUpload
-  adminAuth -->|Yes| adminDelete
-  adminUpload --> updateCatalogue --> endNode
-  adminDelete --> updateCatalogue
-```
-# Data Modeling
-
-## E-R Diagram
-
-```mermaid
-erDiagram
-  USER {
-    objectid _id PK
-    string name
-    string email UK
-    string password
-    string role "enum: user, admin"
-    object aiAnalysis
-    date aiAnalysisSavedAt
-    date createdAt
-    date updatedAt
-  }
-
-  NECKLACE {
-    objectid _id PK
-    string name
-    string description
-    number price
-    string currency
-    string category
-    string style
-    string metal
-    string image
-    string tryOnImage
-    number tryOnScale
-    number tryOnOffsetY
-    boolean isCustom
-    objectid uploadedBy FK
-    boolean inStock
-    boolean featured
-    string tags
-    date createdAt
-    date updatedAt
-  }
-
-  EMAIL_VERIFICATION {
-    objectid _id PK
-    string name
-    string email UK
-    string passwordHash
-    string otpHash
-    number attempts
-    date expiresAt
-    date createdAt
-    date updatedAt
-  }
-
-  USER }o--o{ NECKLACE : wishlist
-  USER ||--o{ NECKLACE : uploads
-  USER ||--o| EMAIL_VERIFICATION : verifies_signup_with
 ```
 
 ## Data Flow Diagram
@@ -367,68 +265,102 @@ flowchart LR
   user["User"]
   frontend["React Frontend"]
   api["Express API"]
-  auth["Authentication Controller"]
+  auth["Auth Controller"]
   necklace["Necklace Controller"]
   wishlist["Wishlist Controller"]
-  styleCtrl["Style Analysis Controller"]
-  upload["Upload Middleware"]
-  db[("MongoDB Database")]
-  files[("Uploads Folder")]
+  style["Style Analysis / Follow-up Controllers"]
+  upload["Multer Upload Middleware"]
+  db[("MongoDB")]
+  files[("backend/uploads")]
   ai["Groq AI Service"]
-  email["Email Service"]
+  email["Nodemailer / SMTP"]
 
-  user -->|"Signup, login, browse, try-on, style requests"| frontend
-  frontend -->|"HTTP requests"| api
+  user --> frontend
+  frontend -->|"REST requests"| api
 
   api --> auth
   api --> necklace
   api --> wishlist
-  api --> styleCtrl
+  api --> style
 
-  auth -->|"Create pending OTP, create user, read profile"| db
-  auth -->|"Send verification code"| email
-  email -->|"OTP email"| user
+  auth -->|"OTP records and users"| db
+  auth -->|"Send OTP"| email
+  email --> user
 
-  necklace -->|"Read catalogue and custom necklaces"| db
-  necklace -->|"Upload custom or admin catalogue necklace image"| upload
-  upload -->|"Store image file"| files
-  upload -->|"File path / filename"| necklace
-  necklace -->|"Save uploaded necklace metadata"| db
-  necklace -->|"Create / delete catalogue necklaces for admins"| db
+  necklace -->|"Catalogue, custom uploads, admin changes"| db
+  necklace --> upload
+  upload --> files
+  wishlist -->|"User wishlist refs"| db
 
-  wishlist -->|"Read / update user wishlist"| db
+  style -->|"Preprocessed image / prompts"| ai
+  ai -->|"Observations, classification, personalization"| style
+  style -->|"Saved analysis"| db
 
-  styleCtrl -->|"Preprocessed selfie and prompts"| ai
-  ai -->|"Observations, classification, personalization"| styleCtrl
-  styleCtrl -->|"Save / read / delete AI analysis"| db
-
-  api -->|"JSON responses"| frontend
-  frontend -->|"Rendered pages and results"| user
+  api --> frontend
+  frontend --> user
 ```
 
-## Database Implementation
+## Activity Diagram
 
-The project uses MongoDB with Mongoose in the Express backend. The connection is created in `backend/config/db.js` and initialized from `backend/server.js` before the API routes are registered.
+```mermaid
+flowchart TD
+  start((Start)) --> openApp["Open Lumiere"]
+  openApp --> choose{"Choose feature"}
 
-Main collections:
+  choose --> catalogue["Browse catalogue"]
+  catalogue --> wishlist{"Save necklace?"}
+  wishlist -->|No| endNode((End))
+  wishlist -->|Yes| auth1{"Logged in?"}
+  auth1 -->|No| authWish["Sign up with OTP or log in"]
+  auth1 -->|Yes| saveWish["Add / remove wishlist item"]
+  authWish --> saveWish --> endNode
 
-| Collection | Mongoose Model | Purpose |
+  choose --> tryon["Open virtual try-on"]
+  tryon --> select["Select catalogue or uploaded necklace"]
+  select --> camera["Start webcam"]
+  camera --> adjust["Adjust scale, offset, opacity"]
+  adjust --> preview["Preview necklace on live camera"] --> endNode
+
+  choose --> custom["Upload custom necklace"]
+  custom --> auth2{"Logged in?"}
+  auth2 -->|No| tempUpload["Temporary browser preview"]
+  auth2 -->|Yes| persistUpload["Save image and Necklace document"]
+  tempUpload --> endNode
+  persistUpload --> endNode
+
+  choose --> style["Run style analysis"]
+  style --> selfie["Upload selfie"]
+  selfie --> analyze["POST /api/style-analysis"]
+  analyze --> valid{"Valid image and face?"}
+  valid -->|No| fix["Show correction message"] --> selfie
+  valid -->|Yes| results["Show style results"]
+  results --> followup{"Ask follow-up?"}
+  followup -->|Yes| answer["Return style answer"] --> save{"Save result?"}
+  followup -->|No| save
+  save -->|No| endNode
+  save -->|Yes| auth3{"Logged in?"}
+  auth3 -->|No| authSave["Sign up with OTP or log in"]
+  auth3 -->|Yes| saveProfile["Save to User.aiAnalysis"] --> endNode
+  authSave --> saveProfile
+
+  choose --> admin["Open admin panel"]
+  admin --> role{"role is admin?"}
+  role -->|No| endNode
+  role -->|Yes| manage["Upload or delete catalogue necklace"]
+  manage --> endNode
+```
+
+## Database Implementation Notes
+
+| Collection | Model | Purpose |
 |---|---|---|
-| `users` | `User` | Stores registered users, hashed passwords, wishlist references, role-based access (`user` or `admin`), and saved AI analysis results. |
-| `necklaces` | `Necklace` | Stores catalogue necklaces and user-uploaded custom necklaces, including try-on image paths and display metadata. |
-| `emailverifications` | `EmailVerification` | Temporarily stores signup OTP details until the user verifies their email. Expired records are removed through a TTL index. |
+| `users` | `User` | Accounts, hashed passwords, role, wishlist references, and saved AI analysis |
+| `necklaces` | `Necklace` | Public catalogue necklaces and user custom uploads |
+| `emailverifications` | `EmailVerification` | Temporary OTP signup records with TTL expiry |
 
-Important implementation details:
-
-- User passwords are hashed with `bcryptjs` before saving.
-- Authentication uses JWT tokens; protected routes use the `protect` middleware.
-- `User.wishlist` stores an array of `ObjectId` references to `Necklace`.
-- Admin access is controlled through `User.role`, which is an enum with `user` and `admin` values.
-- Custom necklaces are linked to their owner through `Necklace.uploadedBy`.
-- Catalogue necklaces are public records with `isCustom: false`; user-uploaded necklaces use `isCustom: true`.
-- Uploaded necklace files are saved in `backend/uploads`, while the database stores their URL paths.
-- AI style analysis results are stored directly on the user document in `User.aiAnalysis`.
-- The `Necklace` model defines indexes for category/style filtering, featured items, and uploaded necklaces.
-- The `EmailVerification.expiresAt` field has a TTL index so pending signup records expire automatically.
-
-
+- `User.role` controls regular user versus admin access.
+- `User.wishlist` stores `ObjectId` references to `Necklace`.
+- Custom uploads are `Necklace` records with `isCustom: true` and `uploadedBy`.
+- Public catalogue records use `isCustom: false`.
+- Uploaded image files are stored in `backend/uploads`; MongoDB stores URL paths.
+- Saved style analysis is stored on `User.aiAnalysis` with `aiAnalysisSavedAt`.
