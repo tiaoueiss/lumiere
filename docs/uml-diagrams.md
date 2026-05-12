@@ -281,7 +281,7 @@ flowchart LR
   api --> auth
   api --> necklace
   api --> wishlist
-  api --> style
+  api --> styleanalysis
 
   auth -->|"OTP records and users"| db
   auth -->|"Send OTP"| email
@@ -293,7 +293,7 @@ flowchart LR
   wishlist -->|"User wishlist refs"| db
 
   styleanalysis -->|"Preprocessed image / prompts"| ai
-  ai -->|"Observations, classification, personalization"| style
+  ai -->|"Observations, classification, personalization"| styleanalysis
   styleanalysis -->|"Saved analysis"| db
 
   api --> frontend
