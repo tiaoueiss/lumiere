@@ -4,7 +4,6 @@ const Necklace = require("../models/Necklace");
 
 const getWishlist = async (req, res) => {
   try {
-    // populate() replaces the ObjectId references with actual necklace data
     const user = await User.findById(req.user._id).populate(
       "wishlist",
       "name image tryOnImage description price category style metal inStock isCustom uploadedBy tryOnSettings",
