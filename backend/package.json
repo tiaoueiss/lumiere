@@ -1,7 +1,7 @@
 {
-  "name": "maison-eclat-backend",
+  "name": "lumiere-backend",
   "version": "1.0.0",
-  "description": "Backend API for Maison Éclat - Luxury AI-Powered Virtual Jewellery Try-On",
+  "description": "Backend API for Lumiere - AI-Powered Jewelry Styling and Virtual Try-On",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
